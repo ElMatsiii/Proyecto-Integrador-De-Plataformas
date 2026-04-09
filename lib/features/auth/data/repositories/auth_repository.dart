@@ -23,7 +23,7 @@ class AuthRepository implements IAuthRepository {
 
   @override
   Future<Result<UsuarioEntity>> login(
-      String usuario, String password) async {
+      String usuario, String password,) async {
     final loginResult = await _remote.login(usuario, password);
     if (loginResult is Failure) return Failure(loginResult.errorOrNull!);
 

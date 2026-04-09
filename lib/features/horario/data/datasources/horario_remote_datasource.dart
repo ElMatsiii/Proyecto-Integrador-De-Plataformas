@@ -4,8 +4,9 @@ import '../../../../core/constants/api_constants.dart';
 import '../../../../core/errors/app_error.dart';
 import '../../../../core/errors/result.dart';
 import '../../../../core/network/dio_client.dart';
-import '../models/horario_dto.dart';
 import '../../domain/entities/horario_entity.dart';
+import '../models/horario_dto.dart';
+
 
 final horarioRemoteDataSourceProvider =
     Provider<HorarioRemoteDataSource>((ref) {
@@ -22,7 +23,7 @@ class HorarioRemoteDataSource {
         ApiConstants.master,
       );
       final data = response.data;
-      if (data == null) return Failure(const ServerError('Respuesta vacía'));
+      if (data == null) return const Failure(ServerError('Respuesta vacía'));
       return Success(MasterDto.fromJson(data));
     } on DioException catch (e) {
       return Failure(dioToAppError(e));

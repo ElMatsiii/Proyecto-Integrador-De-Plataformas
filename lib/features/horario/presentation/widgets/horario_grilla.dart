@@ -6,7 +6,7 @@ class HorarioGrilla extends StatelessWidget {
   final List<HorarioItemEntity> items;
   final MasterEntity master;
 
-  const HorarioGrilla({super.key, required this.items, required this.master});
+  const HorarioGrilla({required this.items, required this.master, super.key});
 
   static const _dias = ['Lunes', 'Martes', 'Miercoles', 'Jueves', 'Viernes', 'Sabado'];
 
@@ -62,8 +62,8 @@ class _HeaderRow extends StatelessWidget {
       children: [
         _Cell(
           width: 72,
-          child: const SizedBox.shrink(),
           color: colors.surfaceContainerHighest,
+          child: const SizedBox.shrink(),
         ),
         ...dias.map(
           (dia) => _Cell(
@@ -123,7 +123,7 @@ class _BloqueRow extends StatelessWidget {
                   bloque.horario!.replaceAll(' ', '\n'),
                   style: TextStyle(
                     fontSize: 9,
-                    color: colors.onSurfaceVariant.withOpacity(0.7),
+                    color: colors.onSurfaceVariant.withValues(alpha: 0.7),
                   ),
                   textAlign: TextAlign.center,
                 ),
@@ -135,7 +135,7 @@ class _BloqueRow extends StatelessWidget {
           final item = items.where((i) => i.dia == dia).firstOrNull;
           return item != null
               ? _ClaseCell(item: item)
-              : _Cell(child: const SizedBox.shrink());
+              : const _Cell(child: SizedBox.shrink());
         }),
       ],
     );
@@ -179,7 +179,7 @@ class _ClaseCell extends StatelessWidget {
                   color: Theme.of(context)
                       .colorScheme
                       .onPrimaryContainer
-                      .withOpacity(0.7),
+                      .withValues(alpha: 0.7),
                 ),
                 overflow: TextOverflow.ellipsis,
               ),
@@ -260,11 +260,11 @@ class _DetalleRow extends StatelessWidget {
         children: [
           Icon(icon,
               size: 16,
-              color: Theme.of(context).colorScheme.onSurfaceVariant),
+              color: Theme.of(context).colorScheme.onSurfaceVariant,),
           const SizedBox(width: 8),
           Expanded(
             child: Text(label,
-                style: const TextStyle(fontSize: 13)),
+                style: const TextStyle(fontSize: 13),),
           ),
         ],
       ),

@@ -1,10 +1,11 @@
 import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:tongoy_app/features/mis_cursos/domain/entities/curso_usuario_entity.dart';
 import '../../../../core/constants/api_constants.dart';
 import '../../../../core/errors/app_error.dart';
 import '../../../../core/errors/result.dart';
 import '../../../../core/network/dio_client.dart';
-import '../../../mis_cursos/domain/entities/curso_usuario_entity.dart';
+
 
 // ── Entidades ─────────────────────────────────────────────────────────────────
 
@@ -99,10 +100,9 @@ class AsistenciaRemoteDataSource {
           bloque: (clase['bloque'] as String?) ?? '',
           asistentes: asistentes,
         );
-      }).toList();
-
-      clases.sort((a, b) =>
-          '${b.fecha}:${b.bloque}'.compareTo('${a.fecha}:${a.bloque}'));
+      }).toList()
+        ..sort((a, b) =>
+            '${b.fecha}:${b.bloque}'.compareTo('${a.fecha}:${a.bloque}'),);
 
       return Success(clases);
     } on DioException catch (e) {

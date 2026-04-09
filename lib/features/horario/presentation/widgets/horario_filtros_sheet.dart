@@ -34,7 +34,7 @@ class HorarioFiltrosSheet extends ConsumerWidget {
             child: Row(
               children: [
                 Text('Filtros',
-                    style: Theme.of(context).textTheme.titleLarge),
+                    style: Theme.of(context).textTheme.titleLarge,),
                 const Spacer(),
                 TextButton(
                   onPressed: () {
@@ -64,7 +64,7 @@ class HorarioFiltrosSheet extends ConsumerWidget {
                     value: filtro.semestre == -1 ? null : filtro.semestre,
                     items: m.semestres
                         .map((s) =>
-                            DropdownMenuItem(value: s.id, child: Text(s.nombre)))
+                            DropdownMenuItem(value: s.id, child: Text(s.nombre)),)
                         .toList(),
                     onChanged: (v) => notifier.setSemestre(v ?? -1),
                   ),
@@ -75,7 +75,7 @@ class HorarioFiltrosSheet extends ConsumerWidget {
                     value: filtro.area == -1 ? null : filtro.area,
                     items: m.areas
                         .map((a) =>
-                            DropdownMenuItem(value: a.id, child: Text(a.nombre)))
+                            DropdownMenuItem(value: a.id, child: Text(a.nombre)),)
                         .toList(),
                     onChanged: (v) => notifier.setArea(v ?? -1),
                   ),
@@ -86,7 +86,7 @@ class HorarioFiltrosSheet extends ConsumerWidget {
                     value: filtro.profesor == -1 ? null : filtro.profesor,
                     items: m.profesores
                         .map((p) =>
-                            DropdownMenuItem(value: p.id, child: Text(p.nombre)))
+                            DropdownMenuItem(value: p.id, child: Text(p.nombre)),)
                         .toList(),
                     onChanged: (v) => notifier.setProfesor(v ?? -1),
                   ),
@@ -97,7 +97,7 @@ class HorarioFiltrosSheet extends ConsumerWidget {
                     value: filtro.sala == -1 ? null : filtro.sala,
                     items: m.salas
                         .map((s) =>
-                            DropdownMenuItem(value: s.id, child: Text(s.nombre)))
+                            DropdownMenuItem(value: s.id, child: Text(s.nombre)),)
                         .toList(),
                     onChanged: (v) => notifier.setSala(v ?? -1),
                   ),
@@ -108,7 +108,7 @@ class HorarioFiltrosSheet extends ConsumerWidget {
                     value: filtro.curso == -1 ? null : filtro.curso,
                     items: m.cursos
                         .map((c) =>
-                            DropdownMenuItem(value: c.id, child: Text(c.nombre)))
+                            DropdownMenuItem(value: c.id, child: Text(c.nombre)),)
                         .toList(),
                     onChanged: (v) => notifier.setCurso(v ?? -1),
                   ),
@@ -147,19 +147,19 @@ class _FiltroDropdown<T> extends StatelessWidget {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 6),
       child: DropdownButtonFormField<T>(
-        value: value,
+        initialValue: value,
         decoration: InputDecoration(
           labelText: label,
           prefixIcon: Icon(icon),
         ),
         isExpanded: true,
-        hint: Text('Todos'),
+        hint: const Text('Todos'),
         items: [
           DropdownMenuItem<T>(
             value: null,
             child: Text('Todos', style: TextStyle(
               color: Theme.of(context).colorScheme.onSurfaceVariant,
-            )),
+            ),),
           ),
           ...items,
         ],

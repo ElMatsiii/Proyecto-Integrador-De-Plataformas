@@ -45,7 +45,7 @@ class SalaDto {
       {required this.id,
       required this.nombre,
       required this.sector,
-      this.capacidad});
+      this.capacidad,});
 
   factory SalaDto.fromJson(Map<String, dynamic> json) => SalaDto(
         id: json['id'] as int,
@@ -190,7 +190,7 @@ class CarreraEnHorarioDto {
   final int semestre;
 
   const CarreraEnHorarioDto(
-      {required this.id, required this.nombre, required this.semestre});
+      {required this.id, required this.nombre, required this.semestre,});
 
   factory CarreraEnHorarioDto.fromJson(Map<String, dynamic> json) =>
       CarreraEnHorarioDto(
@@ -243,7 +243,7 @@ class HorarioItemDto {
         comentario: json['comentario'] as String? ?? '',
         carreras: (json['carreras'] as List? ?? [])
             .map((e) =>
-                CarreraEnHorarioDto.fromJson(e as Map<String, dynamic>))
+                CarreraEnHorarioDto.fromJson(e as Map<String, dynamic>),)
             .toList(),
       );
 

@@ -3,7 +3,7 @@
 class ApiConstants {
   ApiConstants._();
 
-  static const String baseUrl = 'https://losvilos.ucn.cl/tongoy';
+  static const String baseUrl = 'https://losvilos.ucn.cl/hawaii';
 
   // Endpoints
   static const String master = '/master.php';

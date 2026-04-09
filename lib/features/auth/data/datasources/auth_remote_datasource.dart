@@ -27,7 +27,7 @@ class AuthRemoteDataSource {
       if (data['status'] == 'ok') return const Success(null);
       return Failure(AuthError(
         (data['mensaje'] as String?) ?? 'Credenciales inválidas',
-      ));
+      ),);
     } on DioException catch (e) {
       return Failure(dioToAppError(e));
     } catch (e) {

@@ -21,12 +21,12 @@ extension ResultExtensions<T> on Result<T> {
   bool get isFailure => this is Failure<T>;
 
   T? get dataOrNull => switch (this) {
-        Success<T> s => s.data,
+        final Success<T> s => s.data,
         _ => null,
       };
 
   AppError? get errorOrNull => switch (this) {
-        Failure<T> f => f.error,
+        final Failure<T> f => f.error,
         _ => null,
       };
 
@@ -35,7 +35,7 @@ extension ResultExtensions<T> on Result<T> {
     required R Function(AppError error) failure,
   }) =>
       switch (this) {
-        Success<T> s => success(s.data),
-        Failure<T> f => failure(f.error),
+        final Success<T> s => success(s.data),
+        final Failure<T> f => failure(f.error),
       };
 }

@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../domain/entities/horario_entity.dart';
 import '../providers/horario_provider.dart';
-import '../widgets/horario_grilla.dart';
 import '../widgets/horario_filtros_sheet.dart';
+import '../widgets/horario_grilla.dart';
 import '../widgets/horario_search_bar.dart';
 
 class HorarioScreen extends ConsumerWidget {
@@ -23,8 +23,7 @@ class HorarioScreen extends ConsumerWidget {
             icon: const Icon(Icons.refresh),
             tooltip: 'Actualizar',
             onPressed: () {
-              ref.invalidate(masterProvider);
-              ref.invalidate(horarioProvider);
+              ref..invalidate(masterProvider)..invalidate(horarioProvider);
             },
           ),
           // Botón filtros
@@ -62,10 +61,7 @@ class HorarioScreen extends ConsumerWidget {
       context: context,
       isScrollControlled: true,
       useSafeArea: true,
-      builder: (_) => ProviderScope(
-        parent: ProviderScope.containerOf(context),
-        child: const HorarioFiltrosSheet(),
-      ),
+      builder: (_) => const HorarioFiltrosSheet(),
     );
   }
 }
@@ -152,7 +148,7 @@ class _EmptyView extends StatelessWidget {
         children: [
           Icon(Icons.event_busy_rounded,
               size: 64,
-              color: Theme.of(context).colorScheme.onSurfaceVariant),
+              color: Theme.of(context).colorScheme.onSurfaceVariant,),
           const SizedBox(height: 16),
           Text(
             'Sin resultados',

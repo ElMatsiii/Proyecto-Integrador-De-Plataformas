@@ -1,10 +1,9 @@
-import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import '../../features/asistencia/presentation/screens/asistencia_screen.dart';
 import '../../features/auth/presentation/screens/login_screen.dart';
 import '../../features/horario/presentation/screens/horario_screen.dart';
 import '../../features/mis_cursos/presentation/screens/mis_cursos_screen.dart';
-import '../../features/asistencia/presentation/screens/asistencia_screen.dart';
 import '../../shared/widgets/main_scaffold.dart';
 
 final appRouterProvider = Provider<GoRouter>((ref) {
@@ -22,21 +21,21 @@ final appRouterProvider = Provider<GoRouter>((ref) {
               name: AppRoutes.horarioName,
               builder: (_, __) => const HorarioScreen(),
             ),
-          ]),
+          ],),
           StatefulShellBranch(routes: [
             GoRoute(
               path: AppRoutes.misCursos,
               name: AppRoutes.misCursosName,
               builder: (_, __) => const MisCursosScreen(),
             ),
-          ]),
+          ],),
           StatefulShellBranch(routes: [
             GoRoute(
               path: AppRoutes.asistencia,
               name: AppRoutes.asistenciaName,
               builder: (_, __) => const AsistenciaScreen(),
             ),
-          ]),
+          ],),
         ],
       ),
       GoRoute(

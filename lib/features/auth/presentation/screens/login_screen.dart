@@ -89,9 +89,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                         suffixIcon: IconButton(
                           icon: Icon(_obscurePassword
                               ? Icons.visibility_outlined
-                              : Icons.visibility_off_outlined),
+                              : Icons.visibility_off_outlined,),
                           onPressed: () => setState(
-                              () => _obscurePassword = !_obscurePassword),
+                              () => _obscurePassword = !_obscurePassword,),
                         ),
                       ),
                       validator: (v) =>
@@ -115,7 +115,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                               height: 20,
                               width: 20,
                               child: CircularProgressIndicator(
-                                  strokeWidth: 2, color: Colors.white),
+                                  strokeWidth: 2, color: Colors.white,),
                             )
                           : const Text('Ingresar'),
                     ),

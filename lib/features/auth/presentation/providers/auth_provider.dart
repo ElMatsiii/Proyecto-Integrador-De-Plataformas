@@ -1,9 +1,10 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+
+import '../../../../core/errors/result.dart';
 import '../../data/repositories/auth_repository.dart';
 import '../../domain/entities/usuario_entity.dart';
 import '../../domain/repositories/i_auth_repository.dart';
 import '../../domain/usecases/auth_usecases.dart';
-import '../../../../core/errors/result.dart';
 
 // ── Estado de sesión ──────────────────────────────────────────────────────────
 

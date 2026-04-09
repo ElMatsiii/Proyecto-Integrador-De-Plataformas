@@ -21,7 +21,7 @@ void main() {
   });
 
   group('GetHorarioUseCase', () {
-    final filtro = HorarioFiltro(semestre: 6);
+    const filtro = HorarioFiltro(semestre: 6);
     final itemsFake = [
       const HorarioItemEntity(
         id: 1,
@@ -71,7 +71,7 @@ void main() {
   });
 
   group('GetMasterUseCase', () {
-    final masterFake = MasterEntity(
+    const masterFake = MasterEntity(
       areas: [],
       dias: [],
       bloques: [],
@@ -83,7 +83,7 @@ void main() {
 
     test('retorna MasterEntity cuando el repositorio tiene éxito', () async {
       when(() => mockRepo.getMaster(forceRefresh: false))
-          .thenAnswer((_) async => Success(masterFake));
+          .thenAnswer((_) async => const Success(masterFake));
 
       final result = await getMaster();
 
@@ -92,7 +92,7 @@ void main() {
 
     test('forceRefresh se pasa correctamente al repositorio', () async {
       when(() => mockRepo.getMaster(forceRefresh: true))
-          .thenAnswer((_) async => Success(masterFake));
+          .thenAnswer((_) async => const Success(masterFake));
 
       await getMaster(forceRefresh: true);
 

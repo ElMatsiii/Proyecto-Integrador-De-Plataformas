@@ -3,7 +3,7 @@ import 'package:go_router/go_router.dart';
 
 class MainScaffold extends StatelessWidget {
   final StatefulNavigationShell shell;
-  const MainScaffold({super.key, required this.shell});
+  const MainScaffold({required this.shell, super.key});
 
   @override
   Widget build(BuildContext context) {

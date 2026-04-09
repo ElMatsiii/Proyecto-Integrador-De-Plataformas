@@ -37,7 +37,7 @@ class HorarioRepository implements IHorarioRepository {
 
   @override
   Future<Result<List<HorarioItemEntity>>> getHorario(
-      HorarioFiltro filtro) async {
+      HorarioFiltro filtro,) async {
     final result = await _remote.fetchHorario(filtro);
     return result.when(
       success: (dtos) => Success(dtos.map((d) => d.toEntity()).toList()),
@@ -74,6 +74,6 @@ class HorarioRepository implements IHorarioRepository {
     // Serializar dto de vuelta a JSON para guardarlo
     // En una app más grande usarías un mapper dedicado
     await prefs.setString(StorageKeys.masterCacheTime,
-        DateTime.now().toIso8601String());
+        DateTime.now().toIso8601String(),);
   }
 }

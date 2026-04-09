@@ -1,8 +1,9 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+
+import '../../../../core/errors/result.dart';
 import '../../data/repositories/horario_repository.dart';
 import '../../domain/entities/horario_entity.dart';
 import '../../domain/usecases/horario_usecases.dart';
-import '../../../../core/errors/result.dart';
 
 // ── Master (datos estáticos de la API) ───────────────────────────────────────
 

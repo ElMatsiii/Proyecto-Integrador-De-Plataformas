@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 class HorarioSearchBar extends StatefulWidget {
   final ValueChanged<String> onChanged;
 
-  const HorarioSearchBar({super.key, required this.onChanged});
+  const HorarioSearchBar({required this.onChanged, super.key});
 
   @override
   State<HorarioSearchBar> createState() => _HorarioSearchBarState();
