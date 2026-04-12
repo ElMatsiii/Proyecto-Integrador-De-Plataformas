@@ -77,12 +77,14 @@ class SemestreDto {
   final String nombre;
   final String primerLunes;
   final String ultimoDomingo;
+  final bool esActual; // ← agregar
 
   const SemestreDto({
     required this.id,
     required this.nombre,
     required this.primerLunes,
     required this.ultimoDomingo,
+    this.esActual = false, // ← agregar
   });
 
   factory SemestreDto.fromJson(Map<String, dynamic> json) => SemestreDto(
@@ -90,6 +92,7 @@ class SemestreDto {
         nombre: json['nombre'] as String,
         primerLunes: json['primer_lunes'] as String,
         ultimoDomingo: json['ultimo_domingo'] as String,
+        esActual: (json['es_actual'] as int? ?? 0) == 1, // ← agregar
       );
 
   SemestreEntity toEntity() => SemestreEntity(
@@ -97,6 +100,7 @@ class SemestreDto {
         nombre: nombre,
         primerLunes: DateTime.parse(primerLunes),
         ultimoDomingo: DateTime.parse(ultimoDomingo),
+        esActual: esActual, // ← agregar
       );
 }
 

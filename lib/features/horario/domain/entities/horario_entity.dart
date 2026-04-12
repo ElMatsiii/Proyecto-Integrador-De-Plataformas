@@ -53,12 +53,14 @@ class SemestreEntity {
   final String nombre;
   final DateTime primerLunes;
   final DateTime ultimoDomingo;
+  final bool esActual; // ← agregar
 
   const SemestreEntity({
     required this.id,
     required this.nombre,
     required this.primerLunes,
     required this.ultimoDomingo,
+    this.esActual = false, // ← agregar
   });
 }
 
@@ -181,3 +183,4 @@ class HorarioFiltro {
     );
   }
 }
+

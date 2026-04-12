@@ -70,7 +70,10 @@ class MisCursosScreen extends ConsumerWidget {
             return const Center(child: Text('Sin semestres disponibles'));
           }
 
-          final semestreActual = semestres.first;
+          final semestreActual = semestres.firstWhere(
+            (s) => s.esActual,
+            orElse: () => semestres.first,
+          );
           final cursosAsync = ref.watch(
             misCursosProvider(
               (usuario: usuario.rut, semestre: semestreActual.id),

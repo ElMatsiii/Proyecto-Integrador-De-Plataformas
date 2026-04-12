@@ -15,6 +15,7 @@ class ApiConstants {
   static const String asistenciaList = '/asist_marcar6.php';
   static const String firebaseToken = '/ust.php';
   static const String usuarioActual = '/mi.php';
+  static const String carreraUsuario = '/gc.php';
 
   // Timeouts
   static const int connectTimeoutMs = 10000;

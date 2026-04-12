@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../auth/presentation/providers/auth_provider.dart';
 import '../../domain/entities/horario_entity.dart';
 import '../providers/horario_provider.dart';
 import '../widgets/horario_filtros_sheet.dart';
 import '../widgets/horario_grilla.dart';
 import '../widgets/horario_search_bar.dart';
+
 
 class HorarioScreen extends ConsumerWidget {
   const HorarioScreen({super.key});
@@ -13,6 +15,12 @@ class HorarioScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final horario = ref.watch(horarioFiltradoProvider);
     final master = ref.watch(masterProvider);
+
+    ref.listen(authProvider, (_, next) {
+      if (next is AuthUnauthenticated) {
+        ref.read(horarioFiltroProvider.notifier)..reset();
+      }
+    });
 
     return Scaffold(
       appBar: AppBar(
