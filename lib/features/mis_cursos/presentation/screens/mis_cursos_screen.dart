@@ -5,6 +5,7 @@ import '../../../../core/router/app_router.dart';
 import '../../../auth/presentation/providers/auth_provider.dart';
 import '../../../horario/presentation/providers/horario_provider.dart';
 import '../../data/mis_cursos_datasource.dart';
+import '../../data/notas_datasource.dart';
 import '../../domain/entities/curso_usuario_entity.dart';
 
 class MisCursosScreen extends ConsumerWidget {
@@ -14,7 +15,6 @@ class MisCursosScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final authState = ref.watch(authProvider);
 
-    // Si no está autenticado muestra pantalla de login
     if (authState is AuthUnauthenticated || authState is AuthInitial) {
       return _SinSesionView(
         onLogin: () => context.pushNamed(AppRoutes.loginName),
@@ -74,6 +74,7 @@ class MisCursosScreen extends ConsumerWidget {
             (s) => s.esActual,
             orElse: () => semestres.first,
           );
+
           final cursosAsync = ref.watch(
             misCursosProvider(
               (usuario: usuario.rut, semestre: semestreActual.id),
@@ -89,6 +90,7 @@ class MisCursosScreen extends ConsumerWidget {
             data: (cursos) => _CursosList(
               cursos: cursos,
               semestreNombre: semestreActual.nombre,
+              semestreId: semestreActual.id,
             ),
           );
         },
@@ -125,8 +127,13 @@ class MisCursosScreen extends ConsumerWidget {
 class _CursosList extends StatelessWidget {
   final List<CursoUsuarioEntity> cursos;
   final String semestreNombre;
+  final int semestreId;
 
-  const _CursosList({required this.cursos, required this.semestreNombre});
+  const _CursosList({
+    required this.cursos,
+    required this.semestreNombre,
+    required this.semestreId,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -150,17 +157,24 @@ class _CursosList extends StatelessWidget {
     return ListView.builder(
       padding: const EdgeInsets.symmetric(vertical: 8),
       itemCount: cursos.length,
-      itemBuilder: (_, i) => _CursoCard(curso: cursos[i]),
+      itemBuilder: (_, i) => _CursoCard(
+        curso: cursos[i],
+        semestreId: semestreId,
+      ),
     );
   }
 }
 
-class _CursoCard extends StatelessWidget {
+// ── Tarjeta de curso ──────────────────────────────────────────────────────────
+
+class _CursoCard extends ConsumerWidget {
   final CursoUsuarioEntity curso;
-  const _CursoCard({required this.curso});
+  final int semestreId;
+
+  const _CursoCard({required this.curso, required this.semestreId});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final colors = Theme.of(context).colorScheme;
     return Card(
       child: ListTile(
@@ -204,6 +218,19 @@ class _CursoCard extends StatelessWidget {
               ),
           ],
         ),
+        onTap: () => _mostrarDetalle(context, ref),
+      ),
+    );
+  }
+
+  void _mostrarDetalle(BuildContext context, WidgetRef ref) {
+    showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      useSafeArea: true,
+      builder: (_) => _CursoDetalleSheet(
+        curso: curso,
+        semestreId: semestreId,
       ),
     );
   }
@@ -230,6 +257,222 @@ class _Badge extends StatelessWidget {
         borderRadius: BorderRadius.circular(20),
       ),
       child: Text(label, style: TextStyle(fontSize: 10, color: textColor)),
+    );
+  }
+}
+
+// ── Detalle del curso ─────────────────────────────────────────────────────────
+
+class _CursoDetalleSheet extends ConsumerWidget {
+  final CursoUsuarioEntity curso;
+  final int semestreId;
+
+  const _CursoDetalleSheet({
+    required this.curso,
+    required this.semestreId,
+  });
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final asistenciasAsync = ref.watch(asistenciasProvider(semestreId));
+    final notasAsync = ref.watch(notasProvider(semestreId));
+
+    return DraggableScrollableSheet(
+      expand: false,
+      initialChildSize: 0.6,
+      maxChildSize: 0.92,
+      minChildSize: 0.4,
+      builder: (_, controller) => Column(
+        children: [
+          const SizedBox(height: 8),
+          Container(
+            width: 40,
+            height: 4,
+            decoration: BoxDecoration(
+              color: Theme.of(context).colorScheme.outlineVariant,
+              borderRadius: BorderRadius.circular(2),
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(20, 12, 20, 4),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  curso.nombre,
+                  style: Theme.of(context).textTheme.titleLarge,
+                ),
+                Text(
+                  '${curso.codigo} · Sección ${curso.seccion}',
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
+                      ),
+                ),
+              ],
+            ),
+          ),
+          const Divider(height: 1),
+          Expanded(
+            child: ListView(
+              controller: controller,
+              padding: const EdgeInsets.all(16),
+              children: [
+                // Asistencia
+                const _SeccionTitulo(titulo: 'Asistencia'),
+                asistenciasAsync.when(
+                  loading: () =>
+                      const Center(child: CircularProgressIndicator()),
+                  error: (e, _) => Text('Error: $e'),
+                  data: (asistencias) {
+                    final match = asistencias
+                        .where((a) =>
+                            a.codigo == curso.codigo &&
+                            a.seccion == curso.seccion,)
+                        .firstOrNull;
+                    if (match == null) {
+                      return const Padding(
+                        padding: EdgeInsets.symmetric(vertical: 8),
+                        child: Text('Sin datos de asistencia'),
+                      );
+                    }
+                    return _AsistenciaCard(asistencia: match);
+                  },
+                ),
+                const SizedBox(height: 16),
+                // Notas
+                const _SeccionTitulo(titulo: 'Notas'),
+                notasAsync.when(
+                  loading: () =>
+                      const Center(child: CircularProgressIndicator()),
+                  error: (e, _) => Text('Error: $e'),
+                  data: (notas) {
+                    final match = notas
+                        .where((n) =>
+                            n.codigo == curso.codigo &&
+                            n.seccion == curso.seccion,)
+                        .firstOrNull;
+                    if (match == null || match.notas.isEmpty) {
+                      return const Padding(
+                        padding: EdgeInsets.symmetric(vertical: 8),
+                        child: Text('Sin notas disponibles'),
+                      );
+                    }
+                    return _NotasCard(notasCurso: match);
+                  },
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ── Widgets auxiliares ────────────────────────────────────────────────────────
+
+class _SeccionTitulo extends StatelessWidget {
+  final String titulo;
+  const _SeccionTitulo({required this.titulo});
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: Text(
+        titulo,
+        style: Theme.of(context).textTheme.titleMedium?.copyWith(
+              fontWeight: FontWeight.w700,
+            ),
+      ),
+    );
+  }
+}
+
+class _AsistenciaCard extends StatelessWidget {
+  final AsistenciaCursoEntity asistencia;
+  const _AsistenciaCard({required this.asistencia});
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
+    final porcentaje = asistencia.porcentaje;
+    final color = porcentaje >= 75
+        ? colors.primaryContainer
+        : porcentaje >= 50
+            ? colors.secondaryContainer
+            : colors.errorContainer;
+
+    return Card(
+      color: color,
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Row(
+          children: [
+            Text(
+              '$porcentaje%',
+              style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                    fontWeight: FontWeight.w700,
+                  ),
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text('Asistencia actual'),
+                  const SizedBox(height: 4),
+                  LinearProgressIndicator(
+                    value: porcentaje / 100,
+                    backgroundColor: colors.surface,
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _NotasCard extends StatelessWidget {
+  final NotasCursoEntity notasCurso;
+  const _NotasCard({required this.notasCurso});
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(12),
+        child: Column(
+          children: notasCurso.notas
+              .map(
+                (n) => Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 4),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Expanded(
+                        child: Text(
+                          n.nombre,
+                          style: const TextStyle(fontSize: 13),
+                        ),
+                      ),
+                      Text(
+                        n.nota,
+                        style: const TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              )
+              .toList(),
+        ),
+      ),
     );
   }
 }

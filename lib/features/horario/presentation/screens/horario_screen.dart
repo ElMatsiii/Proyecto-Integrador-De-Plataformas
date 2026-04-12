@@ -18,7 +18,7 @@ class HorarioScreen extends ConsumerWidget {
 
     ref.listen(authProvider, (_, next) {
       if (next is AuthUnauthenticated) {
-        ref.read(horarioFiltroProvider.notifier)..reset();
+        ref.read(horarioFiltroProvider.notifier).reset();
       }
     });
 
