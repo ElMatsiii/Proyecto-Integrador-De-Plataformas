@@ -132,10 +132,15 @@ class _BloqueRow extends StatelessWidget {
         ),
         // Una celda por día
         ...dias.map((dia) {
-          final item = items.where((i) => i.dia == dia).firstOrNull;
-          return item != null
-              ? _ClaseCell(item: item)
-              : const _Cell(child: SizedBox.shrink());
+          final itemsDia = items.where((i) => i.dia == dia).toList();
+          if (itemsDia.isEmpty) return const _Cell(child: SizedBox.shrink());
+          return _Cell(
+            height: null,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: itemsDia.map((item) => _ClaseCell(item: item)).toList(),
+            ),
+          );
         }),
       ],
     );
