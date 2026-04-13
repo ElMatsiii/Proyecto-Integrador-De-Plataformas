@@ -1,3 +1,4 @@
+import 'package:cookie_jar/cookie_jar.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import '../../../../core/constants/api_constants.dart';
@@ -15,6 +16,9 @@ final authRepositoryProvider = Provider<IAuthRepository>((ref) {
   );
 });
 
+/// Clave usada para guardar la cookie de sesión en SecureStorage.
+const _kCookieKey = 'phpsessid_cookie';
+
 class AuthRepository implements IAuthRepository {
   final AuthRemoteDataSource _remote;
   final FlutterSecureStorage _storage;
@@ -27,17 +31,22 @@ class AuthRepository implements IAuthRepository {
     final loginResult = await _remote.login(usuario, password);
     if (loginResult is Failure) return Failure(loginResult.errorOrNull!);
 
-    // Guardamos el usuario para saber quién está logueado
+    // Guardar usuario para saber quién está logueado
     await _storage.write(key: StorageKeys.usuario, value: usuario);
 
-    // Obtenemos el nombre real desde la API
+    // Persistir la cookie de sesión para sobrevivir reinicios
+    await _persistCookie();
+
     return getUsuarioActual();
   }
 
   @override
   Future<Result<void>> logout() async {
     try {
-      await _storage.delete(key: StorageKeys.usuario);
+      await Future.wait([
+        _storage.delete(key: StorageKeys.usuario),
+        _storage.delete(key: _kCookieKey),
+      ]);
       await DioClient.cookieJar.deleteAll();
       return const Success(null);
     } catch (e) {
@@ -59,6 +68,56 @@ class AuthRepository implements IAuthRepository {
   @override
   Future<bool> estaAutenticado() async {
     final usuario = await _storage.read(key: StorageKeys.usuario);
-    return usuario != null;
+    if (usuario == null) return false;
+
+    // Intentar restaurar la cookie antes de verificar
+    await _restoreCookie();
+    return true;
+  }
+
+  // ── Cookie persistence ────────────────────────────────────────────────────
+
+  /// Guarda la PHPSESSID en SecureStorage tras un login exitoso.
+  Future<void> _persistCookie() async {
+    try {
+      final uri = Uri.parse(ApiConstants.baseUrl);
+      final cookies = await DioClient.cookieJar.loadForRequest(uri);
+      final session = cookies.firstWhere(
+        (c) => c.name == 'PHPSESSID',
+        orElse: () => Cookie('', ''),
+      );
+      if (session.value.isNotEmpty) {
+        // Guardamos "nombre=valor" para reconstruirla luego
+        await _storage.write(
+          key: _kCookieKey,
+          value: '${session.name}=${session.value}',
+        );
+      }
+    } catch (_) {
+      // No crítico: la sesión en memoria sigue funcionando
+    }
+  }
+
+  /// Restaura la cookie desde SecureStorage al CookieJar de Dio.
+  Future<void> _restoreCookie() async {
+    try {
+      final raw = await _storage.read(key: _kCookieKey);
+      if (raw == null || !raw.contains('=')) return;
+
+      final parts = raw.split('=');
+      final name = parts[0];
+      final value = parts.sublist(1).join('=');
+
+      final cookie = Cookie(name, value)
+        // Sin fecha de expiración → vive mientras la app esté en memoria
+        // El servidor decidirá si la sesión sigue válida
+        ..httpOnly = true
+        ..path = '/';
+
+      final uri = Uri.parse(ApiConstants.baseUrl);
+      await DioClient.cookieJar.saveFromResponse(uri, [cookie]);
+    } catch (_) {
+      // Si falla la restauración, el usuario tendrá que loguearse de nuevo
+    }
   }
 }

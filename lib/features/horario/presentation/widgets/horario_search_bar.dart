@@ -1,54 +1,79 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../providers/horario_provider.dart';
 
 class HorarioSearchBar extends ConsumerStatefulWidget {
   final ValueChanged<String> onChanged;
+  /// Controller externo opcional. Si se provee, este widget NO lo dispone.
+  final TextEditingController? controller;
 
-  const HorarioSearchBar({required this.onChanged, super.key});
+  const HorarioSearchBar({
+    required this.onChanged,
+    this.controller,
+    super.key,
+  });
 
   @override
   ConsumerState<HorarioSearchBar> createState() => _HorarioSearchBarState();
 }
 
 class _HorarioSearchBarState extends ConsumerState<HorarioSearchBar> {
-  final _controller = TextEditingController();
+  late final TextEditingController _controller;
+  bool _ownsController = false;
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.controller != null) {
+      _controller = widget.controller!;
+    } else {
+      _controller = TextEditingController();
+      _ownsController = true;
+    }
+    // Refrescar el ícono cuando el controller cambia externamente
+    _controller.addListener(_onControllerChanged);
+  }
+
+  void _onControllerChanged() {
+    // Solo llamar setState si el widget sigue montado
+    if (mounted) setState(() {});
+  }
 
   @override
   void dispose() {
-    _controller.dispose();
+    _controller.removeListener(_onControllerChanged);
+    // Solo disposar si somos dueños del controller
+    if (_ownsController) _controller.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    final search = _controller.text;
-    final esMisRamos = search.trim() == ':';
+    final text = _controller.text;
+    final esMisRamos = text.trim() == ':';
 
-      return TextField(
-        controller: _controller,
-        decoration: InputDecoration(
-          hintText: 'Buscar ramo, profesor, sala... (: = mis ramos)',
-          prefixIcon: Icon(
-            esMisRamos ? Icons.bookmark : Icons.search,
-            size: 20,
-          ),
-          suffixIcon: search.isNotEmpty
-              ? IconButton(
-                  icon: const Icon(Icons.clear, size: 18),
-                  onPressed: () {
-                    _controller.clear();
-                    widget.onChanged('');
-                    setState(() {});
-                  },
-                )
-              : null,
-          isDense: true,
+    return TextField(
+      controller: _controller,
+      decoration: InputDecoration(
+        hintText: 'Buscar ramo, profesor, sala... (: = mis ramos)',
+        prefixIcon: Icon(
+          esMisRamos ? Icons.bookmark : Icons.search,
+          size: 20,
         ),
-        onChanged: (value) {
+        suffixIcon: text.isNotEmpty
+            ? IconButton(
+                icon: const Icon(Icons.clear, size: 18),
+                onPressed: () {
+                  _controller.clear();
+                  widget.onChanged('');
+                },
+              )
+            : null,
+        isDense: true,
+      ),
+      onChanged: (value) {
         widget.onChanged(value);
-        setState(() {}); // actualiza ícono y suffixIcon
-        },
-      );
- }
+        // setState ya es llamado por el listener del controller
+      },
+    );
+  }
 }

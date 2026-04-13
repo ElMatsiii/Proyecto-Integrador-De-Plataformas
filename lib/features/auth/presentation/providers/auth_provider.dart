@@ -65,6 +65,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
         super(const AuthInitial());
 
   /// Verifica si hay sesión guardada al iniciar la app.
+  /// Restaura la cookie desde SecureStorage antes de consultar la API.
   Future<void> checkSession() async {
     state = const AuthLoading();
     final estaAuth = await _authRepository.estaAutenticado();
@@ -72,7 +73,14 @@ class AuthNotifier extends StateNotifier<AuthState> {
       state = const AuthUnauthenticated();
       return;
     }
+    // La cookie fue restaurada en estaAutenticado() → verificar con la API
     final result = await _getUsuario();
+    // Si la API rechaza la sesión (cookie expirada en servidor), limpiar
+    if (result is Failure) {
+      await _authRepository.logout();
+      state = const AuthUnauthenticated();
+      return;
+    }
     state = _mapResult(result);
   }
 
@@ -82,9 +90,15 @@ class AuthNotifier extends StateNotifier<AuthState> {
     state = _mapResult(result);
   }
 
+  /// Logout seguro: limpia todo y transiciona a Unauthenticated.
+  /// No lanza excepciones — si algo falla, igual limpia el estado local.
   Future<void> logout() async {
-    await _logout();
+    // Cambiamos estado ANTES de la llamada asíncrona para que
+    // el router redirija de inmediato y no quede la pantalla montada
+    // con datos de un usuario que ya no existe.
     state = const AuthUnauthenticated();
+    // Limpieza en background
+    await _logout();
   }
 
   AuthState _mapResult(Result<UsuarioEntity> result) {

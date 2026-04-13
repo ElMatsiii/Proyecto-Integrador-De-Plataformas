@@ -7,17 +7,40 @@ import '../widgets/horario_filtros_sheet.dart';
 import '../widgets/horario_grilla.dart';
 import '../widgets/horario_search_bar.dart';
 
-
-class HorarioScreen extends ConsumerWidget {
+class HorarioScreen extends ConsumerStatefulWidget {
   const HorarioScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<HorarioScreen> createState() => _HorarioScreenState();
+}
+
+class _HorarioScreenState extends ConsumerState<HorarioScreen> {
+  // Controlador compartido entre el estado y el widget de búsqueda
+  final _searchController = TextEditingController();
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final horario = ref.watch(horarioFiltradoProvider);
     final master = ref.watch(masterProvider);
 
-    ref.listen(authProvider, (_, next) {
-      if (next is AuthUnauthenticated) {
+    // Escuchar cambios de auth para:
+    // 1. Al loguearse → escribir ":" automáticamente
+    // 2. Al desloguearse → limpiar búsqueda y reset filtros
+    ref.listen<AuthState>(authProvider, (previous, next) {
+      if (next is AuthAuthenticated && previous is! AuthAuthenticated) {
+        // Login detectado → activar modo "mis ramos"
+        _searchController.text = ':';
+        ref.read(horarioSearchProvider.notifier).state = ':';
+      } else if (next is AuthUnauthenticated) {
+        // Logout → limpiar todo
+        _searchController.clear();
+        ref.read(horarioSearchProvider.notifier).state = '';
         ref.read(horarioFiltroProvider.notifier).reset();
       }
     });
@@ -26,15 +49,15 @@ class HorarioScreen extends ConsumerWidget {
       appBar: AppBar(
         title: const Text('Horario'),
         actions: [
-          // Botón refrescar
           IconButton(
             icon: const Icon(Icons.refresh),
             tooltip: 'Actualizar',
             onPressed: () {
-              ref..invalidate(masterProvider)..invalidate(horarioProvider);
+              ref
+                ..invalidate(masterProvider)
+                ..invalidate(horarioProvider);
             },
           ),
-          // Botón filtros
           IconButton(
             icon: const Icon(Icons.tune),
             tooltip: 'Filtros',
@@ -46,6 +69,7 @@ class HorarioScreen extends ConsumerWidget {
           child: Padding(
             padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
             child: HorarioSearchBar(
+              controller: _searchController,
               onChanged: (text) =>
                   ref.read(horarioSearchProvider.notifier).state = text,
             ),
@@ -54,7 +78,10 @@ class HorarioScreen extends ConsumerWidget {
       ),
       body: master.when(
         loading: () => const Center(child: CircularProgressIndicator()),
-        error: (e, _) => _ErrorView(mensaje: e.toString(), onRetry: () => ref.invalidate(masterProvider)),
+        error: (e, _) => _ErrorView(
+          mensaje: e.toString(),
+          onRetry: () => ref.invalidate(masterProvider),
+        ),
         data: (masterData) => _HorarioBody(
           horario: horario,
           master: masterData,
@@ -91,8 +118,7 @@ class _HorarioBody extends StatelessWidget {
   Widget build(BuildContext context) {
     return horario.when(
       loading: () => const Center(child: CircularProgressIndicator()),
-      error: (e, _) =>
-          _ErrorView(mensaje: e.toString(), onRetry: onRetry),
+      error: (e, _) => _ErrorView(mensaje: e.toString(), onRetry: onRetry),
       data: (items) => items.isEmpty
           ? const _EmptyView()
           : HorarioGrilla(items: items, master: master),
@@ -154,9 +180,11 @@ class _EmptyView extends StatelessWidget {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(Icons.event_busy_rounded,
-              size: 64,
-              color: Theme.of(context).colorScheme.onSurfaceVariant,),
+          Icon(
+            Icons.event_busy_rounded,
+            size: 64,
+            color: Theme.of(context).colorScheme.onSurfaceVariant,
+          ),
           const SizedBox(height: 16),
           Text(
             'Sin resultados',
