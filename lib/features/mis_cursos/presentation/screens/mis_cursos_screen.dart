@@ -112,6 +112,10 @@ class MisCursosScreen extends ConsumerWidget {
           FilledButton(
             onPressed: () {
               Navigator.of(dialogContext).pop();
+              // Invalidar providers antes de hacer logout
+              ref..invalidate(misCursosProvider)
+              ..invalidate(idsCursosUsuarioProvider)
+              ..invalidate(carreraUsuarioProvider);
               ref.read(authProvider.notifier).logout();
             },
             child: const Text('Cerrar sesión'),
