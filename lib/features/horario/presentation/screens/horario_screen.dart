@@ -15,18 +15,23 @@ class HorarioScreen extends ConsumerStatefulWidget {
 }
 
 class _HorarioScreenState extends ConsumerState<HorarioScreen> {
-  // Controlador compartido entre el estado y el widget de búsqueda
   final _searchController = TextEditingController();
+
+  /// Evita que el listener active ":" más de una vez por sesión.
+  /// Se resetea a false al hacer logout, permitiendo que el próximo
+  /// login (o reinicio con sesión activa) vuelva a activarlo.
+  bool _misRamosActivado = false;
 
   @override
   void initState() {
     super.initState();
-    // Si al montar ya hay sesión activa → activar modo "mis ramos"
+    // Caso: la pantalla se monta cuando auth ya resolvió (AuthAuthenticated).
+    // Esto ocurre si el usuario navega de vuelta a Horario después de loguearse,
+    // o si StatefulShellRoute restaura el estado con sesión ya activa.
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final authState = ref.read(authProvider);
-      if (authState is AuthAuthenticated) {
-        _searchController.text = ':';
-        ref.read(horarioSearchProvider.notifier).state = ':';
+      if (authState is AuthAuthenticated && !_misRamosActivado) {
+        _activarMisRamos();
       }
     });
   }
@@ -37,27 +42,32 @@ class _HorarioScreenState extends ConsumerState<HorarioScreen> {
     super.dispose();
   }
 
+  void _activarMisRamos() {
+    _misRamosActivado = true;
+    _searchController.text = ':';
+    ref.read(horarioSearchProvider.notifier).state = ':';
+  }
+
+  void _desactivarMisRamos() {
+    _misRamosActivado = false;
+    _searchController.clear();
+    ref.read(horarioSearchProvider.notifier).state = '';
+    ref.read(horarioFiltroProvider.notifier).reset();
+  }
+
   @override
   Widget build(BuildContext context) {
     final horario = ref.watch(horarioFiltradoProvider);
     final master = ref.watch(masterProvider);
 
-    // Escuchar cambios de auth para:
-    // 1. Al loguearse → escribir ":" automáticamente
-    // 2. Al desloguearse → limpiar búsqueda y reset filtros
     ref.listen<AuthState>(authProvider, (previous, next) {
-      // Solo activar "mis ramos" cuando la transición sea hacia autenticado
-      // desde un estado NO autenticado (no desde loading/initial)
-      if (next is AuthAuthenticated &&
-          previous is! AuthAuthenticated &&
-          previous is! AuthInitial &&
-          previous is! AuthLoading) {
-        _searchController.text = ':';
-        ref.read(horarioSearchProvider.notifier).state = ':';
-      } else if (next is AuthUnauthenticated) {
-        _searchController.clear();
-        ref.read(horarioSearchProvider.notifier).state = '';
-        ref.read(horarioFiltroProvider.notifier).reset();
+      if (next is AuthAuthenticated && !_misRamosActivado) {
+        // El flag garantiza que solo se activa UNA vez por sesión,
+        // sin importar cuántas veces AuthLoading → AuthAuthenticated
+        // dispare el listener (reinicio con sesión o login manual).
+        _activarMisRamos();
+      } else if (next is AuthUnauthenticated || next is AuthError) {
+        if (_misRamosActivado) _desactivarMisRamos();
       }
     });
 
