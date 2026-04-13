@@ -45,6 +45,12 @@ class HorarioFiltroNotifier extends StateNotifier<HorarioFiltro> {
 final horarioProvider =
     FutureProvider<List<HorarioItemEntity>>((ref) async {
   var filtro = ref.watch(horarioFiltroProvider);
+  final authState = ref.watch(authProvider);
+
+  // Esperar a que auth termine de verificar
+  if (authState is AuthInitial || authState is AuthLoading) {
+    return [];
+  }
 
   // Si no hay semestre seleccionado, usar el semestre actual del master.
   if (filtro.semestre == -1) {

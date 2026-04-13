@@ -93,12 +93,8 @@ class AuthNotifier extends StateNotifier<AuthState> {
   /// Logout seguro: limpia todo y transiciona a Unauthenticated.
   /// No lanza excepciones — si algo falla, igual limpia el estado local.
   Future<void> logout() async {
-    // Cambiamos estado ANTES de la llamada asíncrona para que
-    // el router redirija de inmediato y no quede la pantalla montada
-    // con datos de un usuario que ya no existe.
-    state = const AuthUnauthenticated();
-    // Limpieza en background
-    await _logout();
+    await _logout(); // limpiar primero
+    state = const AuthUnauthenticated(); // luego cambiar estado
   }
 
   AuthState _mapResult(Result<UsuarioEntity> result) {

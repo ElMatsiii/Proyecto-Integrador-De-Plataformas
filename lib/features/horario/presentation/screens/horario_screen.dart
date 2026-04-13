@@ -19,6 +19,19 @@ class _HorarioScreenState extends ConsumerState<HorarioScreen> {
   final _searchController = TextEditingController();
 
   @override
+  void initState() {
+    super.initState();
+    // Si al montar ya hay sesión activa → activar modo "mis ramos"
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final authState = ref.read(authProvider);
+      if (authState is AuthAuthenticated) {
+        _searchController.text = ':';
+        ref.read(horarioSearchProvider.notifier).state = ':';
+      }
+    });
+  }
+
+  @override
   void dispose() {
     _searchController.dispose();
     super.dispose();
@@ -33,12 +46,15 @@ class _HorarioScreenState extends ConsumerState<HorarioScreen> {
     // 1. Al loguearse → escribir ":" automáticamente
     // 2. Al desloguearse → limpiar búsqueda y reset filtros
     ref.listen<AuthState>(authProvider, (previous, next) {
-      if (next is AuthAuthenticated && previous is! AuthAuthenticated) {
-        // Login detectado → activar modo "mis ramos"
+      // Solo activar "mis ramos" cuando la transición sea hacia autenticado
+      // desde un estado NO autenticado (no desde loading/initial)
+      if (next is AuthAuthenticated &&
+          previous is! AuthAuthenticated &&
+          previous is! AuthInitial &&
+          previous is! AuthLoading) {
         _searchController.text = ':';
         ref.read(horarioSearchProvider.notifier).state = ':';
       } else if (next is AuthUnauthenticated) {
-        // Logout → limpiar todo
         _searchController.clear();
         ref.read(horarioSearchProvider.notifier).state = '';
         ref.read(horarioFiltroProvider.notifier).reset();

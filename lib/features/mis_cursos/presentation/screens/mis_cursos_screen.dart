@@ -101,17 +101,17 @@ class MisCursosScreen extends ConsumerWidget {
   void _confirmarLogout(BuildContext context, WidgetRef ref) {
     showDialog<void>(
       context: context,
-      builder: (_) => AlertDialog(
+      builder: (dialogContext) => AlertDialog(
         title: const Text('Cerrar sesión'),
         content: const Text('¿Quieres cerrar tu sesión?'),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(context),
+            onPressed: () => Navigator.of(dialogContext).pop(),
             child: const Text('Cancelar'),
           ),
           FilledButton(
             onPressed: () {
-              Navigator.pop(context);
+              Navigator.of(dialogContext).pop();
               ref.read(authProvider.notifier).logout();
             },
             child: const Text('Cerrar sesión'),
