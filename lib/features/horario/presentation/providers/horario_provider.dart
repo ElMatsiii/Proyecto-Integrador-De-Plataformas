@@ -1,8 +1,8 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../../../core/constants/api_constants.dart';        
+import '../../../../core/constants/api_constants.dart';
 import '../../../../core/errors/result.dart';
-import '../../../../core/network/dio_client.dart';       
-import '../../../auth/presentation/providers/auth_provider.dart';        
+import '../../../../core/network/dio_client.dart';
+import '../../../auth/presentation/providers/auth_provider.dart';
 import '../../data/repositories/horario_repository.dart';
 import '../../domain/entities/horario_entity.dart';
 import '../../domain/usecases/horario_usecases.dart';
@@ -37,27 +37,17 @@ class HorarioFiltroNotifier extends StateNotifier<HorarioFiltro> {
   void reset() => state = const HorarioFiltro();
 }
 
-// ── Horario filtrado ─────────────────────────────────────────────────────────
+// ── Horario completo del semestre ─────────────────────────────────────────────
+//
+// Siempre carga TODOS los ramos del semestre activo (o del filtro
+// seleccionado), sin importar si hay sesión o no.
 
 final horarioProvider =
     FutureProvider<List<HorarioItemEntity>>((ref) async {
   var filtro = ref.watch(horarioFiltroProvider);
-  final authState = ref.watch(authProvider);
 
-  final tieneFiltros = filtro.semestre != -1 ||
-      filtro.area != -1 ||
-      filtro.profesor != -1 ||
-      filtro.curso != -1 ||
-      filtro.sala != -1 ||
-      filtro.carrera != -1;
-
-  // Sin filtros y sin login → grilla vacía
-  if (!tieneFiltros && authState is! AuthAuthenticated) {
-    return [];
-  }
-
-  // Con login y sin filtros manuales → semestre actual, filtrar por NRCs del usuario
-  if (!tieneFiltros && authState is AuthAuthenticated) {
+  // Si no hay semestre seleccionado, usar el semestre actual del master.
+  if (filtro.semestre == -1) {
     final master = await ref.watch(masterProvider.future);
     final semestre = master.semestres.firstWhere(
       (s) => s.esActual,
@@ -69,68 +59,15 @@ final horarioProvider =
   final repo = ref.watch(horarioRepositoryProvider);
   final useCase = GetHorarioUseCase(repo);
   final result = await useCase(filtro);
+
   if (result is! Success<List<HorarioItemEntity>>) {
     throw Exception((result as Failure<List<HorarioItemEntity>>).error.message);
   }
 
-  var items = result.data;
-
-  // Con login y sin filtros manuales → filtrar por NRCs del usuario
-  if (!tieneFiltros && authState is AuthAuthenticated) {
-    final idsCursos = await ref.watch(idsCursosUsuarioProvider.future);
-    if (idsCursos.isNotEmpty) {
-      items = items.where((i) => idsCursos.contains(i.idCurso)).toList();
-    }
-  }
-
-  return items;
+  return result.data;
 });
 
-// ── Texto de búsqueda rápida ─────────────────────────────────────────────────
-
-final horarioSearchProvider = StateProvider<String>((ref) => '');
-
-/// Horario filtrado por texto de búsqueda rápida (sobre los resultados ya
-/// obtenidos del servidor).
-final horarioFiltradoProvider =
-    Provider<AsyncValue<List<HorarioItemEntity>>>((ref) {
-  final horario = ref.watch(horarioProvider);
-  final search = ref.watch(horarioSearchProvider).toLowerCase().trim();
-
-  return horario.whenData((items) {
-    if (search.isEmpty) return items;
-    return items.where((item) {
-      return item.curso.toLowerCase().contains(search) ||
-          item.profesor.toLowerCase().contains(search) ||
-          item.sala.toLowerCase().contains(search) ||
-          item.area.toLowerCase().contains(search);
-    }).toList();
-  });
-});
-
-final carreraUsuarioProvider = FutureProvider<int?>((ref) async {
-  final authState = ref.watch(authProvider);
-  if (authState is! AuthAuthenticated) return null;
-
-  final master = await ref.watch(masterProvider.future);
-  final semestre = master.semestres.firstWhere(
-    (s) => s.esActual,
-    orElse: () => master.semestres.first,
-  );
-
-  final dio = ref.watch(dioClientProvider);
-  try {
-    final response = await dio.get<Map<String, dynamic>>( // ← Map no List
-      ApiConstants.carreraUsuario,
-      queryParameters: <String, dynamic>{'s': semestre.id},
-    );
-    final data = response.data;
-    if (data == null) return null;
-    return data['id'] as int?; // ← directo, sin .first
-  } catch (_) {
-    return null;
-  }
-});
+// ── IDs de cursos inscritos del usuario ──────────────────────────────────────
 
 final idsCursosUsuarioProvider = FutureProvider<Set<int>>((ref) async {
   final authState = ref.watch(authProvider);
@@ -160,5 +97,76 @@ final idsCursosUsuarioProvider = FutureProvider<Set<int>>((ref) async {
         .toSet();
   } catch (_) {
     return {};
+  }
+});
+
+// ── Texto de búsqueda rápida ─────────────────────────────────────────────────
+
+final horarioSearchProvider = StateProvider<String>((ref) => '');
+
+/// Horario final con búsqueda aplicada.
+///
+/// Lógica inspirada en Hawaii:
+/// - Texto vacío      → muestra todos los ramos del semestre.
+/// - Texto con ":"    → muestra SOLO los ramos inscritos del usuario
+///                      (requiere login; sin login muestra lista vacía).
+/// - Cualquier texto  → filtra sobre todos los ramos por curso/profesor/sala/área.
+final horarioFiltradoProvider =
+    Provider<AsyncValue<List<HorarioItemEntity>>>((ref) {
+  final horario = ref.watch(horarioProvider);
+  final search = ref.watch(horarioSearchProvider).trim();
+
+  // Modo "mis ramos": el usuario escribió ":"
+  if (search == ':') {
+    final authState = ref.watch(authProvider);
+    if (authState is! AuthAuthenticated) {
+      return const AsyncData([]);
+    }
+    final idsCursos = ref.watch(idsCursosUsuarioProvider);
+    return idsCursos.when(
+      loading: () => const AsyncLoading(),
+      error: (e, st) => AsyncError(e, st),
+      data: (ids) => horario.whenData(
+        (items) => items.where((i) => ids.contains(i.idCurso)).toList(),
+      ),
+    );
+  }
+
+  // Modo búsqueda normal: filtra sobre TODOS los ramos
+  return horario.whenData((items) {
+    if (search.isEmpty) return items;
+    final query = search.toLowerCase();
+    return items.where((item) {
+      return item.curso.toLowerCase().contains(query) ||
+          item.profesor.toLowerCase().contains(query) ||
+          item.sala.toLowerCase().contains(query) ||
+          item.area.toLowerCase().contains(query);
+    }).toList();
+  });
+});
+
+// ── Provider auxiliar (carrera del usuario) ───────────────────────────────────
+
+final carreraUsuarioProvider = FutureProvider<int?>((ref) async {
+  final authState = ref.watch(authProvider);
+  if (authState is! AuthAuthenticated) return null;
+
+  final master = await ref.watch(masterProvider.future);
+  final semestre = master.semestres.firstWhere(
+    (s) => s.esActual,
+    orElse: () => master.semestres.first,
+  );
+
+  final dio = ref.watch(dioClientProvider);
+  try {
+    final response = await dio.get<Map<String, dynamic>>(
+      ApiConstants.carreraUsuario,
+      queryParameters: <String, dynamic>{'s': semestre.id},
+    );
+    final data = response.data;
+    if (data == null) return null;
+    return data['id'] as int?;
+  } catch (_) {
+    return null;
   }
 });
