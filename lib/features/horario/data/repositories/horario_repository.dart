@@ -103,7 +103,7 @@ class HorarioRepository implements IHorarioRepository {
                 'nombre': e.nombre,
                 'sector': e.sector,
                 'capacidad': e.capacidad,
-              })
+              },)
           .toList(),
       'cursos': dto.cursos
           .map((e) => {'id': e.id, 'nombre': e.nombre})
@@ -118,7 +118,7 @@ class HorarioRepository implements IHorarioRepository {
                 'primer_lunes': e.primerLunes,
                 'ultimo_domingo': e.ultimoDomingo,
                 'es_actual': e.esActual ? 1 : 0,
-              })
+              },)
           .toList(),
     };
   }

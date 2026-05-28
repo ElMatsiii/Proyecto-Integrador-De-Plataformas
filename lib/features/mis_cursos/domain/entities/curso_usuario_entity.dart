@@ -1,6 +1,4 @@
-// ── DOMAIN ───────────────────────────────────────────────────────────────────
-
-/// Representa un curso asociado al usuario (como estudiante o profesor)
+/// Representa un curso asociado al usuario (como estudiante)
 class CursoUsuarioEntity {
   final int id;
   final String nombre;
@@ -8,8 +6,10 @@ class CursoUsuarioEntity {
   final String seccion;
   /// 'E' = Estudiante, 'P' = Profesor
   final String rol;
-  /// 'A' = tiene Asistencia, 'N' = tiene Notas (para estudiantes)
+  /// 'A' = tiene Asistencia, 'N' = tiene Notas
   final String extra;
+  /// RUT numérico del estudiante (pid en la API)
+  final int pid;
 
   const CursoUsuarioEntity({
     required this.id,
@@ -18,6 +18,7 @@ class CursoUsuarioEntity {
     required this.seccion,
     required this.rol,
     required this.extra,
+    this.pid = 0,
   });
 
   bool get esProfesor => rol == 'P';

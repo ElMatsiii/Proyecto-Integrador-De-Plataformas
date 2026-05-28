@@ -1,67 +1,66 @@
 import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:tongoy_app/features/mis_cursos/domain/entities/curso_usuario_entity.dart';
 import '../../../../core/constants/api_constants.dart';
 import '../../../../core/errors/app_error.dart';
 import '../../../../core/errors/result.dart';
 import '../../../../core/network/dio_client.dart';
 
-
 // ── Entidades ─────────────────────────────────────────────────────────────────
+
+class AsistenciaResumenEntity {
+  final int cursoId;
+  final int presentes;
+  final int ausentes;
+  final int justificados;
+  final int total;
+
+  const AsistenciaResumenEntity({
+    required this.cursoId,
+    required this.presentes,
+    required this.ausentes,
+    required this.justificados,
+    required this.total,
+  });
+
+  int get porcentaje =>
+      total == 0 ? 0 : ((presentes / total) * 100).round();
+}
 
 class AsistenciaClaseEntity {
   final String fecha;
   final String bloque;
-  final Map<String, AsistenciaEstudianteEntity> asistentes;
+  final int estado; // 1=Presente, 0=Ausente, 3=Justificado, -1=Atrasado
 
   const AsistenciaClaseEntity({
     required this.fecha,
     required this.bloque,
-    required this.asistentes,
-  });
-}
-
-class AsistenciaEstudianteEntity {
-  final String rut;
-  final String nombres;
-  final String apellidos;
-
-  /// 1=Presente, 0=Ausente, 3=Justificado, -1=Atrasado
-  final int estado;
-  final String razon;
-
-  const AsistenciaEstudianteEntity({
-    required this.rut,
-    required this.nombres,
-    required this.apellidos,
     required this.estado,
-    required this.razon,
   });
-
-  String get nombreCompleto => '$nombres $apellidos';
 
   String get estadoTexto => switch (estado) {
         1 => 'Presente',
         0 => 'Ausente',
         3 => 'Justificado',
         -1 => 'Atrasado',
-        _ => 'Desconocido',
+        _ => 'Sin registro',
       };
 }
 
 // ── Data source ───────────────────────────────────────────────────────────────
 
-final asistenciaRemoteProvider = Provider<AsistenciaRemoteDataSource>((ref) {
-  return AsistenciaRemoteDataSource(ref.watch(dioClientProvider));
+final asistenciaEstudianteRemoteProvider =
+    Provider<AsistenciaEstudianteRemoteDataSource>((ref) {
+  return AsistenciaEstudianteRemoteDataSource(ref.watch(dioClientProvider));
 });
 
-class AsistenciaRemoteDataSource {
+class AsistenciaEstudianteRemoteDataSource {
   final Dio _dio;
-  const AsistenciaRemoteDataSource(this._dio);
+  const AsistenciaEstudianteRemoteDataSource(this._dio);
 
-  Future<Result<List<AsistenciaClaseEntity>>> fetchAsistencia(
+  Future<Result<List<AsistenciaClaseEntity>>> fetchAsistenciaEstudiante(
     int cursoId,
     int semestreId,
+    String rutEstudiante,
   ) async {
     try {
       final response = await _dio.get<Map<String, dynamic>>(
@@ -76,33 +75,37 @@ class AsistenciaRemoteDataSource {
       final data = response.data;
       if (data == null) return const Success([]);
 
-      final clases = data.entries.map((entry) {
+      // Print temporal para debug
+      if (data.isNotEmpty) {
+        final primeraClase = data.values.first as Map<String, dynamic>;
+        final asistentes =
+            primeraClase['asistentes'] as Map<String, dynamic>? ?? {};
+        print('RUTS EN ASISTENCIA: ${asistentes.keys.take(5).toList()}');
+        print('BUSCANDO RUT: $rutEstudiante');
+      }
+
+      final clases = <AsistenciaClaseEntity>[];
+
+      for (final entry in data.entries) {
         final clase = entry.value as Map<String, dynamic>;
-        final asistentesRaw =
+        final fecha = (clase['fecha'] as String?) ?? '';
+        final bloque = (clase['bloque'] as String?) ?? '';
+        final asistentes =
             clase['asistentes'] as Map<String, dynamic>? ?? {};
 
-        final asistentes = asistentesRaw.map((rut, est) {
-          final e = est as Map<String, dynamic>;
-          return MapEntry(
-            rut,
-            AsistenciaEstudianteEntity(
-              rut: (e['rut'] as String?) ?? rut,
-              nombres: (e['nombres'] as String?) ?? '',
-              apellidos: (e['apellidos'] as String?) ?? '',
-              estado: (e['estado'] as int?) ?? 0,
-              razon: (e['razon'] as String?) ?? '',
-            ),
-          );
-        });
+        if (asistentes.containsKey(rutEstudiante)) {
+          final est = asistentes[rutEstudiante] as Map<String, dynamic>;
+          final estado = (est['estado'] as int?) ?? 0;
+          clases.add(AsistenciaClaseEntity(
+            fecha: fecha,
+            bloque: bloque,
+            estado: estado,
+          ));
+        }
+      }
 
-        return AsistenciaClaseEntity(
-          fecha: (clase['fecha'] as String?) ?? '',
-          bloque: (clase['bloque'] as String?) ?? '',
-          asistentes: asistentes,
-        );
-      }).toList()
-        ..sort((a, b) =>
-            '${b.fecha}:${b.bloque}'.compareTo('${a.fecha}:${a.bloque}'),);
+      clases.sort((a, b) =>
+          '${b.fecha}:${b.bloque}'.compareTo('${a.fecha}:${a.bloque}'));
 
       return Success(clases);
     } on DioException catch (e) {
@@ -115,14 +118,17 @@ class AsistenciaRemoteDataSource {
 
 // ── Providers ─────────────────────────────────────────────────────────────────
 
-final cursoSeleccionadoProvider =
-    StateProvider<CursoUsuarioEntity?>((ref) => null);
+typedef AsistenciaArgs = ({int curso, int semestre, String rut});
 
-final asistenciaProvider = FutureProvider.family<
+final asistenciaEstudianteProvider = FutureProvider.family<
     List<AsistenciaClaseEntity>,
-    ({int curso, int semestre})>((ref, args) async {
-  final ds = ref.watch(asistenciaRemoteProvider);
-  final result = await ds.fetchAsistencia(args.curso, args.semestre);
+    AsistenciaArgs>((ref, args) async {
+  final ds = ref.watch(asistenciaEstudianteRemoteProvider);
+  final result = await ds.fetchAsistenciaEstudiante(
+    args.curso,
+    args.semestre,
+    args.rut,
+  );
   if (result is Success<List<AsistenciaClaseEntity>>) return result.data;
   throw Exception(
     (result as Failure<List<AsistenciaClaseEntity>>).error.message,

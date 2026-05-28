@@ -59,17 +59,32 @@ class MisCursosRepository implements IMisCursosRepository {
   ) async {
     final result = await _remote.fetchCursos(usuario, semestreId);
     if (result is Success<List<Map<String, dynamic>>>) {
-      final entidades = result.data.map((Map<String, dynamic> e) {
-        return CursoUsuarioEntity(
+      // La API devuelve cada curso dos veces: una con extra=A y otra con extra=N.
+      // Deduplicamos por (codigo, seccion), priorizando extra=A sobre extra=N
+      // para que el id del curso sea siempre el correcto para asistencia.
+      final seen = <String, CursoUsuarioEntity>{};
+      for (final e in result.data) {
+        final codigo = (e['codigo'] as String?) ?? '';
+        final seccion = (e['seccion'] as String?) ?? '';
+        final key = '$codigo|$seccion';
+        final extra = (e['extra'] as String?) ?? '';
+        final entity = CursoUsuarioEntity(
           id: (e['id'] as int?) ?? 0,
           nombre: (e['nombre'] as String?) ?? '',
-          codigo: (e['codigo'] as String?) ?? '',
-          seccion: (e['seccion'] as String?) ?? '',
+          codigo: codigo,
+          seccion: seccion,
           rol: (e['rol'] as String?) ?? 'E',
-          extra: (e['extra'] as String?) ?? '',
+          extra: extra,
+          // Guardamos el pid (RUT del estudiante) para usarlo en asistencia
+          pid: (e['pid'] as int?) ?? 0,
         );
-      }).toList();
-      return Success(entidades);
+        // Si no existe aún, agregar. Si ya existe con extra=N, reemplazar con extra=A
+        if (!seen.containsKey(key) ||
+            (seen[key]!.extra != 'A' && extra == 'A')) {
+          seen[key] = entity;
+        }
+      }
+      return Success(seen.values.toList());
     }
     return Failure((result as Failure<List<Map<String, dynamic>>>).error);
   }

@@ -8,13 +8,19 @@ class AsistenciaCursoEntity {
   final String codigo;
   final String seccion;
   final int porcentaje;
+  final int presentes;
+  final int total;
 
   const AsistenciaCursoEntity({
     required this.nombre,
     required this.codigo,
     required this.seccion,
     required this.porcentaje,
+    required this.presentes,
+    required this.total,
   });
+
+  int get ausentes => total - presentes;
 }
 
 class NotaCursoEntity {
@@ -52,12 +58,28 @@ class NotasRemoteDataSource {
       queryParameters: <String, dynamic>{'s': semestreId, 'op': 'as'},
     );
     final list = response.data ?? [];
+    print('Asistencias raw: $list');
     return list.cast<Map<String, dynamic>>().map((e) {
+      final porcentaje = int.tryParse((e['porcentaje'] as String?) ?? '0') ?? 0;
+      final presentes = int.tryParse((e['presentes'] as String?) ?? '0') ?? 0;
+      final total = int.tryParse((e['total'] as String?) ?? '0') ?? 0;
+
+      // Si la API no devuelve presentes/total, los derivamos del porcentaje
+      // usando total como referencia si está disponible.
+      final resolvedTotal = total > 0 ? total : 0;
+      final resolvedPresentes = presentes > 0
+          ? presentes
+          : resolvedTotal > 0
+              ? (resolvedTotal * porcentaje / 100).round()
+              : 0;
+
       return AsistenciaCursoEntity(
         nombre: (e['nombre'] as String?) ?? '',
         codigo: (e['codigo'] as String?) ?? '',
         seccion: (e['seccion'] as String?) ?? '',
-        porcentaje: int.tryParse((e['porcentaje'] as String?) ?? '0') ?? 0,
+        porcentaje: porcentaje,
+        presentes: resolvedPresentes,
+        total: resolvedTotal,
       );
     }).toList();
   }

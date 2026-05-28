@@ -407,31 +407,67 @@ class _AsistenciaCard extends StatelessWidget {
             ? colors.secondaryContainer
             : colors.errorContainer;
 
+    // Calcular presentes/ausentes/total desde el porcentaje y total
+    // La API devuelve porcentaje; si también devuelve presentes y total, úsalos.
+    // Por ahora derivamos con lo disponible en AsistenciaCursoEntity.
+    final total = asistencia.total;
+    final presentes = asistencia.presentes;
+    final ausentes = total - presentes;
+
     return Card(
       color: color,
       child: Padding(
         padding: const EdgeInsets.all(16),
-        child: Row(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
-              '$porcentaje%',
-              style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                    fontWeight: FontWeight.w700,
+            Row(
+              children: [
+                Text(
+                  '$porcentaje%',
+                  style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                        fontWeight: FontWeight.w700,
+                      ),
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text('Asistencia actual'),
+                      const SizedBox(height: 4),
+                      LinearProgressIndicator(
+                        value: porcentaje / 100,
+                        backgroundColor: colors.surface,
+                      ),
+                    ],
                   ),
+                ),
+              ],
             ),
-            const SizedBox(width: 16),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text('Asistencia actual'),
-                  const SizedBox(height: 4),
-                  LinearProgressIndicator(
-                    value: porcentaje / 100,
-                    backgroundColor: colors.surface,
-                  ),
-                ],
-              ),
+            const SizedBox(height: 12),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceAround,
+              children: [
+                _StatChip(
+                  label: 'Asistidas',
+                  value: '$presentes',
+                  icon: Icons.check_circle_outline,
+                  color: colors.onSurface,
+                ),
+                _StatChip(
+                  label: 'Ausentes',
+                  value: '$ausentes',
+                  icon: Icons.cancel_outlined,
+                  color: colors.onSurface,
+                ),
+                _StatChip(
+                  label: 'Total',
+                  value: '$total',
+                  icon: Icons.calendar_month_outlined,
+                  color: colors.onSurface,
+                ),
+              ],
             ),
           ],
         ),
@@ -440,6 +476,44 @@ class _AsistenciaCard extends StatelessWidget {
   }
 }
 
+class _StatChip extends StatelessWidget {
+  final String label;
+  final String value;
+  final IconData icon;
+  final Color color;
+
+  const _StatChip({
+    required this.label,
+    required this.value,
+    required this.icon,
+    required this.color,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: [
+        Icon(icon, size: 16, color: color.withValues(alpha: 0.7)),
+        const SizedBox(height: 2),
+        Text(
+          value,
+          style: TextStyle(
+            fontSize: 16,
+            fontWeight: FontWeight.w700,
+            color: color,
+          ),
+        ),
+        Text(
+          label,
+          style: TextStyle(
+            fontSize: 10,
+            color: color.withValues(alpha: 0.7),
+          ),
+        ),
+      ],
+    );
+  }
+}
 class _NotasCard extends StatelessWidget {
   final NotasCursoEntity notasCurso;
   const _NotasCard({required this.notasCurso});
