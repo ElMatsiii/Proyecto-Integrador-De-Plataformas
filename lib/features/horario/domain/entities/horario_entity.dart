@@ -53,14 +53,14 @@ class SemestreEntity {
   final String nombre;
   final DateTime primerLunes;
   final DateTime ultimoDomingo;
-  final bool esActual; // ← agregar
+  final bool esActual;
 
   const SemestreEntity({
     required this.id,
     required this.nombre,
     required this.primerLunes,
     required this.ultimoDomingo,
-    this.esActual = false, // ← agregar
+    this.esActual = false,
   });
 }
 
@@ -143,15 +143,21 @@ class HorarioItemEntity {
   });
 }
 
-/// Filtros para consultar el horario
+/// Filtros para consultar el horario.
+/// [dia] es filtrado localmente (no se envía a la API).
+/// [carreraId] también es filtrado localmente sobre los resultados.
 class HorarioFiltro {
   final int sala;
   final int curso;
   final int profesor;
   final int semestre;
-  final int semestreC;
+  final int semestreC; // nivel de la carrera (1-10)
   final int carrera;
   final int area;
+  /// Nombre del día para filtro local ('Lunes', 'Martes', etc.). Vacío = todos.
+  final String dia;
+  /// ID de carrera para filtro local. -1 = todas.
+  final int carreraId;
 
   const HorarioFiltro({
     this.sala = -1,
@@ -161,6 +167,8 @@ class HorarioFiltro {
     this.semestreC = -1,
     this.carrera = -1,
     this.area = -1,
+    this.dia = '',
+    this.carreraId = -1,
   });
 
   HorarioFiltro copyWith({
@@ -171,6 +179,8 @@ class HorarioFiltro {
     int? semestreC,
     int? carrera,
     int? area,
+    String? dia,
+    int? carreraId,
   }) {
     return HorarioFiltro(
       sala: sala ?? this.sala,
@@ -180,7 +190,19 @@ class HorarioFiltro {
       semestreC: semestreC ?? this.semestreC,
       carrera: carrera ?? this.carrera,
       area: area ?? this.area,
+      dia: dia ?? this.dia,
+      carreraId: carreraId ?? this.carreraId,
     );
   }
-}
 
+  /// Retorna true si hay al menos un filtro activo además del semestre.
+  bool get tieneFiltroPorsAplicados =>
+      sala != -1 ||
+      curso != -1 ||
+      profesor != -1 ||
+      semestreC != -1 ||
+      carrera != -1 ||
+      area != -1 ||
+      dia.isNotEmpty ||
+      carreraId != -1;
+}
