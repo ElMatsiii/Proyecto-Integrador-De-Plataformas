@@ -12,7 +12,8 @@ class ApiConstants {
   static const String auth = '/a.php';
   static const String validarRut = '/ge.php';
   static const String cursos = '/cp.php';
-  static const String asistenciaList = '/asist_marcar6.php';
+  // CORRECTO: asist_marcar4.php (no asist_marcar6.php)
+  static const String asistenciaList = '/asist_marcar4.php';
   static const String firebaseToken = '/ust.php';
   static const String usuarioActual = '/mi.php';
   static const String carreraUsuario = '/gc.php';

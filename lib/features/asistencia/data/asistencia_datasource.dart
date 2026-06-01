@@ -57,6 +57,11 @@ class AsistenciaEstudianteRemoteDataSource {
   final Dio _dio;
   const AsistenciaEstudianteRemoteDataSource(this._dio);
 
+  /// Obtiene el detalle de asistencia por clase para un estudiante.
+  ///
+  /// La API de Tongoy usa asist_marcar4.php con op=list.
+  /// Las claves del mapa "asistentes" son el RUT del estudiante como string,
+  /// exactamente como lo devuelve mi.php (ej: "216542363" o "18758339K").
   Future<Result<List<AsistenciaClaseEntity>>> fetchAsistenciaEstudiante(
     int cursoId,
     int semestreId,
@@ -64,7 +69,8 @@ class AsistenciaEstudianteRemoteDataSource {
   ) async {
     try {
       final response = await _dio.get<Map<String, dynamic>>(
-        ApiConstants.asistenciaList,
+        // Endpoint correcto: asist_marcar4.php (no asist_marcar6.php)
+        '/asist_marcar4.php',
         queryParameters: <String, dynamic>{
           'c': cursoId,
           's': semestreId,
@@ -73,16 +79,7 @@ class AsistenciaEstudianteRemoteDataSource {
       );
 
       final data = response.data;
-      if (data == null) return const Success([]);
-
-      // Print temporal para debug
-      if (data.isNotEmpty) {
-        final primeraClase = data.values.first as Map<String, dynamic>;
-        final asistentes =
-            primeraClase['asistentes'] as Map<String, dynamic>? ?? {};
-        print('RUTS EN ASISTENCIA: ${asistentes.keys.take(5).toList()}');
-        print('BUSCANDO RUT: $rutEstudiante');
-      }
+      if (data == null || data.isEmpty) return const Success([]);
 
       final clases = <AsistenciaClaseEntity>[];
 
@@ -93,6 +90,8 @@ class AsistenciaEstudianteRemoteDataSource {
         final asistentes =
             clase['asistentes'] as Map<String, dynamic>? ?? {};
 
+        // La clave es el RUT string tal como viene de mi.php
+        // Ejemplos: "216542363", "18758339K"
         if (asistentes.containsKey(rutEstudiante)) {
           final est = asistentes[rutEstudiante] as Map<String, dynamic>;
           final estado = (est['estado'] as int?) ?? 0;
@@ -104,6 +103,7 @@ class AsistenciaEstudianteRemoteDataSource {
         }
       }
 
+      // Ordenar por fecha+bloque descendente (más reciente primero)
       clases.sort((a, b) =>
           '${b.fecha}:${b.bloque}'.compareTo('${a.fecha}:${a.bloque}'));
 
@@ -118,6 +118,8 @@ class AsistenciaEstudianteRemoteDataSource {
 
 // ── Providers ─────────────────────────────────────────────────────────────────
 
+/// [rut] es el RUT string del usuario autenticado (campo rut de mi.php).
+/// [curso] es el id del curso. [semestre] es el id del semestre.
 typedef AsistenciaArgs = ({int curso, int semestre, String rut});
 
 final asistenciaEstudianteProvider = FutureProvider.family<

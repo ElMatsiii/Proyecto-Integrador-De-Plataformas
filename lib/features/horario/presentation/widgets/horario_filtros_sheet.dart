@@ -464,6 +464,8 @@ class _BusquedaDropdown<T> extends StatefulWidget {
 }
 
 class _BusquedaDropdownState<T> extends State<_BusquedaDropdown<T>> {
+  String _query = '';
+
   String get _labelActual {
     if (widget.value == null) return '';
     return widget.items
