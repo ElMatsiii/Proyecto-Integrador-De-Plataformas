@@ -1,6 +1,6 @@
 import 'package:dio/dio.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../../../core/constants/api_constants.dart';
 import '../../../../core/errors/app_error.dart';
 import '../../../../core/errors/result.dart';
 import '../../../../core/network/dio_client.dart';
@@ -38,13 +38,21 @@ class AsistenciaClaseEntity {
   });
 
   String get estadoTexto => switch (estado) {
-        1 => 'Presente',
-        0 => 'Ausente',
-        3 => 'Justificado',
+        1  => 'Presente',
+        0  => 'Ausente',
+        3  => 'Justificado',
         -1 => 'Atrasado',
-        _ => 'Sin registro',
+        _  => 'Sin registro',
       };
 }
+
+// ── Helpers ───────────────────────────────────────────────────────────────────
+
+/// Extrae solo los dígitos numéricos de un RUT.
+/// "9586127K" → "9586127"
+/// "216542363" → "216542363" (sin cambios, ya es solo números)
+String _rutSoloDigitos(String rut) =>
+    rut.replaceAll(RegExp(r'[^0-9]'), '');
 
 // ── Data source ───────────────────────────────────────────────────────────────
 
@@ -57,11 +65,6 @@ class AsistenciaEstudianteRemoteDataSource {
   final Dio _dio;
   const AsistenciaEstudianteRemoteDataSource(this._dio);
 
-  /// Obtiene el detalle de asistencia por clase para un estudiante.
-  ///
-  /// La API de Tongoy usa asist_marcar4.php con op=list.
-  /// Las claves del mapa "asistentes" son el RUT del estudiante como string,
-  /// exactamente como lo devuelve mi.php (ej: "216542363" o "18758339K").
   Future<Result<List<AsistenciaClaseEntity>>> fetchAsistenciaEstudiante(
     int cursoId,
     int semestreId,
@@ -69,8 +72,7 @@ class AsistenciaEstudianteRemoteDataSource {
   ) async {
     try {
       final response = await _dio.get<Map<String, dynamic>>(
-        // Endpoint correcto: asist_marcar4.php (no asist_marcar6.php)
-        '/asist_marcar4.php',
+        '/asist_marcar6.php',
         queryParameters: <String, dynamic>{
           'c': cursoId,
           's': semestreId,
@@ -81,31 +83,103 @@ class AsistenciaEstudianteRemoteDataSource {
       final data = response.data;
       if (data == null || data.isEmpty) return const Success([]);
 
+      final rutDigitos = _rutSoloDigitos(rutEstudiante);
+
+      // LOG: ver cuántas entradas trae la API y las claves de asistentes
+      if (kDebugMode) {
+        debugPrint('=== ASISTENCIA DEBUG ===');
+        debugPrint('RUT buscado (original): $rutEstudiante');
+        debugPrint('RUT buscado (dígitos):  $rutDigitos');
+        debugPrint('Total entradas en API:  ${data.length}');
+        for (final entry in data.entries) {
+          final clase = entry.value;
+          if (clase is Map) {
+            final asistentes = clase['asistentes'];
+            if (asistentes is Map) {
+              final claves = asistentes.keys.toList();
+              final tieneEstudiante = claves.any(
+                (k) => _rutSoloDigitos(k.toString()) == rutDigitos,
+              );
+              debugPrint(
+                'Clase ${entry.key}: '
+                '${claves.length} asistentes, '
+                'estudiante presente: $tieneEstudiante, '
+                'claves: ${claves.take(3)}...',
+              );
+            } else {
+              debugPrint('Clase ${entry.key}: asistentes no es Map → ${asistentes.runtimeType}');
+            }
+          }
+        }
+        debugPrint('========================');
+      }
+
       final clases = <AsistenciaClaseEntity>[];
 
       for (final entry in data.entries) {
-        final clase = entry.value as Map<String, dynamic>;
-        final fecha = (clase['fecha'] as String?) ?? '';
-        final bloque = (clase['bloque'] as String?) ?? '';
-        final asistentes =
-            clase['asistentes'] as Map<String, dynamic>? ?? {};
+        final clase = entry.value;
+        if (clase is! Map) continue;
+        final claseMap = clase.cast<String, dynamic>();
 
-        // La clave es el RUT string tal como viene de mi.php
-        // Ejemplos: "216542363", "18758339K"
-        if (asistentes.containsKey(rutEstudiante)) {
-          final est = asistentes[rutEstudiante] as Map<String, dynamic>;
-          final estado = (est['estado'] as int?) ?? 0;
+        final fecha  = (claseMap['fecha']  as String?) ?? '';
+        final bloque = (claseMap['bloque'] as String?) ?? '';
+
+        final asistentesRaw = claseMap['asistentes'];
+
+        // Caso 1: asistentes es un Map (caso normal)
+        if (asistentesRaw is Map) {
+          final asistentes = asistentesRaw.cast<String, dynamic>();
+
+          // Buscar por dígitos exactos
+          dynamic estudianteData = asistentes[rutDigitos];
+
+          // Fallback: buscar comparando solo dígitos de la clave
+          if (estudianteData == null) {
+            for (final k in asistentes.keys) {
+              if (_rutSoloDigitos(k) == rutDigitos) {
+                estudianteData = asistentes[k];
+                break;
+              }
+            }
+          }
+
+          if (estudianteData == null) continue;
+
+          final estadoRaw = estudianteData is Map
+              ? estudianteData['estado']
+              : null;
+
           clases.add(AsistenciaClaseEntity(
-            fecha: fecha,
+            fecha:  fecha,
             bloque: bloque,
-            estado: estado,
+            estado: _parseEstado(estadoRaw),
           ));
+        }
+        // Caso 2: asistentes es una Lista (formato alternativo que usa la API
+        // en algunas versiones — cada elemento tiene 'rut' y 'estado')
+        else if (asistentesRaw is List) {
+          for (final item in asistentesRaw) {
+            if (item is! Map) continue;
+            final itemRut = _rutSoloDigitos(
+              (item['rut'] ?? item['pid'] ?? '').toString(),
+            );
+            if (itemRut != rutDigitos) continue;
+            clases.add(AsistenciaClaseEntity(
+              fecha:  fecha,
+              bloque: bloque,
+              estado: _parseEstado(item['estado']),
+            ));
+            break;
+          }
         }
       }
 
-      // Ordenar por fecha+bloque descendente (más reciente primero)
       clases.sort((a, b) =>
           '${b.fecha}:${b.bloque}'.compareTo('${a.fecha}:${a.bloque}'));
+
+      if (kDebugMode) {
+        debugPrint('Clases encontradas para el estudiante: ${clases.length}');
+      }
 
       return Success(clases);
     } on DioException catch (e) {
@@ -114,12 +188,17 @@ class AsistenciaEstudianteRemoteDataSource {
       return Failure(UnknownError(e.toString()));
     }
   }
+
+  int _parseEstado(dynamic raw) {
+    if (raw is int)    return raw;
+    if (raw is double) return raw.toInt();
+    if (raw is String) return int.tryParse(raw) ?? 0;
+    return 0;
+  }
 }
 
 // ── Providers ─────────────────────────────────────────────────────────────────
 
-/// [rut] es el RUT string del usuario autenticado (campo rut de mi.php).
-/// [curso] es el id del curso. [semestre] es el id del semestre.
 typedef AsistenciaArgs = ({int curso, int semestre, String rut});
 
 final asistenciaEstudianteProvider = FutureProvider.family<

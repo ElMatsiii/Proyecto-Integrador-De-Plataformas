@@ -48,6 +48,16 @@ final notasRemoteProvider = Provider<NotasRemoteDataSource>((ref) {
   return NotasRemoteDataSource(ref.watch(dioClientProvider));
 });
 
+/// Convierte un valor dinámico de la API a int de forma segura.
+/// La API Tongoy a veces devuelve números como int, otras como String.
+int _toInt(dynamic value, {int fallback = 0}) {
+  if (value == null) return fallback;
+  if (value is int) return value;
+  if (value is double) return value.toInt();
+  if (value is String) return int.tryParse(value) ?? fallback;
+  return fallback;
+}
+
 class NotasRemoteDataSource {
   final Dio _dio;
   const NotasRemoteDataSource(this._dio);
@@ -58,28 +68,20 @@ class NotasRemoteDataSource {
       queryParameters: <String, dynamic>{'s': semestreId, 'op': 'as'},
     );
     final list = response.data ?? [];
-    print('Asistencias raw: $list');
-    return list.cast<Map<String, dynamic>>().map((e) {
-      final porcentaje = int.tryParse((e['porcentaje'] as String?) ?? '0') ?? 0;
-      final presentes = int.tryParse((e['presentes'] as String?) ?? '0') ?? 0;
-      final total = int.tryParse((e['total'] as String?) ?? '0') ?? 0;
 
-      // Si la API no devuelve presentes/total, los derivamos del porcentaje
-      // usando total como referencia si está disponible.
-      final resolvedTotal = total > 0 ? total : 0;
-      final resolvedPresentes = presentes > 0
-          ? presentes
-          : resolvedTotal > 0
-              ? (resolvedTotal * porcentaje / 100).round()
-              : 0;
+    return list.cast<Map<String, dynamic>>().map((e) {
+      // Usar _toInt para manejar tanto int como String
+      final porcentaje = _toInt(e['porcentaje']);
+      final presentes  = _toInt(e['presentes']);
+      final total      = _toInt(e['total']);
 
       return AsistenciaCursoEntity(
-        nombre: (e['nombre'] as String?) ?? '',
-        codigo: (e['codigo'] as String?) ?? '',
-        seccion: (e['seccion'] as String?) ?? '',
+        nombre:     (e['nombre']  as String?) ?? '',
+        codigo:     (e['codigo']  as String?) ?? '',
+        seccion:    (e['seccion'] as String?) ?? '',
         porcentaje: porcentaje,
-        presentes: resolvedPresentes,
-        total: resolvedTotal,
+        presentes:  presentes,
+        total:      total,
       );
     }).toList();
   }
@@ -94,13 +96,13 @@ class NotasRemoteDataSource {
       final notasRaw =
           (e['notas'] as List<dynamic>? ?? []).cast<Map<String, dynamic>>();
       return NotasCursoEntity(
-        codigo: (e['codigo'] as String?) ?? '',
+        codigo:     (e['codigo']     as String?) ?? '',
         asignatura: (e['asignatura'] as String?) ?? '',
-        seccion: (e['seccion'] as String?) ?? '',
+        seccion:    (e['seccion']    as String?) ?? '',
         notas: notasRaw
             .map((n) => NotaCursoEntity(
                   nombre: (n['nombre'] as String?) ?? '',
-                  nota: (n['nota'] as String?) ?? '',
+                  nota:   (n['nota']   as String?) ?? '',
                 ),)
             .where((n) =>
                 n.nota.isNotEmpty &&

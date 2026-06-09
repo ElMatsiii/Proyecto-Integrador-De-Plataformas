@@ -58,35 +58,56 @@ class MisCursosRepository implements IMisCursosRepository {
     int semestreId,
   ) async {
     final result = await _remote.fetchCursos(usuario, semestreId);
-    if (result is Success<List<Map<String, dynamic>>>) {
-      // La API devuelve cada curso dos veces: una con extra=A y otra con extra=N.
-      // Deduplicamos por (codigo, seccion), priorizando extra=A sobre extra=N
-      // para que el id del curso sea siempre el correcto para asistencia.
-      final seen = <String, CursoUsuarioEntity>{};
-      for (final e in result.data) {
-        final codigo = (e['codigo'] as String?) ?? '';
-        final seccion = (e['seccion'] as String?) ?? '';
-        final key = '$codigo|$seccion';
-        final extra = (e['extra'] as String?) ?? '';
-        final entity = CursoUsuarioEntity(
-          id: (e['id'] as int?) ?? 0,
-          nombre: (e['nombre'] as String?) ?? '',
-          codigo: codigo,
-          seccion: seccion,
-          rol: (e['rol'] as String?) ?? 'E',
-          extra: extra,
-          // Guardamos el pid (RUT del estudiante) para usarlo en asistencia
-          pid: (e['pid'] as int?) ?? 0,
-        );
-        // Si no existe aún, agregar. Si ya existe con extra=N, reemplazar con extra=A
-        if (!seen.containsKey(key) ||
-            (seen[key]!.extra != 'A' && extra == 'A')) {
-          seen[key] = entity;
-        }
-      }
-      return Success(seen.values.toList());
+    if (result is! Success<List<Map<String, dynamic>>>) {
+      return Failure((result as Failure<List<Map<String, dynamic>>>).error);
     }
-    return Failure((result as Failure<List<Map<String, dynamic>>>).error);
+
+    // La API devuelve el mismo curso dos veces cuando tiene tanto asistencia
+    // como notas: una entrada con extra=A (id del registro de asistencia) y
+    // otra con extra=N (id del registro de notas). Estos IDs son DISTINTOS y
+    // ambos pueden aparecer en g.php como idcurso.
+    //
+    // Solución: agrupar por (codigo, seccion) y guardar TODOS los IDs
+    // en extraIds para que el filtro de horario funcione con cualquiera.
+
+    // Primero agrupamos todas las entradas por clave (codigo|seccion)
+    final grupos = <String, List<Map<String, dynamic>>>{};
+    for (final e in result.data) {
+      final codigo  = (e['codigo']  as String?) ?? '';
+      final seccion = (e['seccion'] as String?) ?? '';
+      final key = '$codigo|$seccion';
+      grupos.putIfAbsent(key, () => []).add(e);
+    }
+
+    final entidades = <CursoUsuarioEntity>[];
+
+    for (final grupo in grupos.values) {
+      // Preferir la entrada con extra=A para los datos principales
+      // (tiene el id correcto para consultar asistencia)
+      final entradaA = grupo.firstWhere(
+        (e) => (e['extra'] as String?) == 'A',
+        orElse: () => grupo.first,
+      );
+
+      // Recopilar TODOS los IDs del grupo (puede haber uno o dos)
+      final todosLosIds = grupo
+          .map((e) => (e['id'] as int?) ?? 0)
+          .where((id) => id != 0)
+          .toSet();
+
+      entidades.add(CursoUsuarioEntity(
+        id:       (entradaA['id']      as int?)    ?? 0,
+        nombre:   (entradaA['nombre']  as String?) ?? '',
+        codigo:   (entradaA['codigo']  as String?) ?? '',
+        seccion:  (entradaA['seccion'] as String?) ?? '',
+        rol:      (entradaA['rol']     as String?) ?? 'E',
+        extra:    (entradaA['extra']   as String?) ?? '',
+        pid:      (entradaA['pid']     as int?)    ?? 0,
+        extraIds: todosLosIds,
+      ));
+    }
+
+    return Success(entidades);
   }
 }
 

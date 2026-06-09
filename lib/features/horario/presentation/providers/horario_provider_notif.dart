@@ -116,11 +116,11 @@ final idsCursosPorRolProvider = FutureProvider<RolesCursos>((ref) async {
 
   final comoEstudiante = result.data
       .where((c) => !c.esProfesor)
-      .map((c) => c.id)
+      .expand((c) => c.todosLosIds)   // incluye id + extraIds
       .toSet();
   final comoProfesor = result.data
       .where((c) => c.esProfesor)
-      .map((c) => c.id)
+      .expand((c) => c.todosLosIds)   // incluye id + extraIds
       .toSet();
 
   return (comoEstudiante: comoEstudiante, comoProfesor: comoProfesor);
