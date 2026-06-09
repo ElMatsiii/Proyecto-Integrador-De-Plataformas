@@ -2,11 +2,13 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/constants/api_constants.dart';
 import '../../../../core/errors/result.dart';
 import '../../../../core/network/dio_client.dart';
-import '../../../auth/presentation/providers/auth_provider.dart';
+import '../../../../core/services/notificaciones_service.dart';
+import '../../../auth/presentation/providers/auth_provider_notif.dart';
+import '../../../mis_cursos/data/mis_cursos_datasource.dart';
+import '../../../mis_cursos/domain/entities/curso_usuario_entity.dart';
 import '../../data/repositories/horario_repository.dart';
 import '../../domain/entities/horario_entity.dart';
 import '../../domain/usecases/horario_usecases.dart';
-
 
 // ── Master (datos estáticos de la API) ───────────────────────────────────────
 
@@ -35,9 +37,7 @@ class HorarioFiltroNotifier extends StateNotifier<HorarioFiltro> {
   void setSala(int id) => state = state.copyWith(sala: id);
   void setCarrera(int id) => state = state.copyWith(carrera: id);
   void setNivel(int nivel) => state = state.copyWith(semestreC: nivel);
-  /// Filtro de día: local, no se envía a la API.
   void setDia(String dia) => state = state.copyWith(dia: dia);
-  /// Filtro de carrera por ID: local, sobre los resultados ya descargados.
   void setCarreraId(int id) => state = state.copyWith(carreraId: id);
 
   void reset() => state = const HorarioFiltro();
@@ -65,7 +65,6 @@ final horarioProvider =
 
   final repo = ref.watch(horarioRepositoryProvider);
   final useCase = GetHorarioUseCase(repo);
-  // Solo se envían a la API los filtros de servidor (no dia ni carreraId local)
   final filtroApi = HorarioFiltro(
     sala: filtro.sala,
     curso: filtro.curso,
@@ -84,11 +83,23 @@ final horarioProvider =
   return result.data;
 });
 
-// ── IDs de cursos inscritos del usuario ──────────────────────────────────────
+// ── Modo de vista: estudiante o ayudante ─────────────────────────────────────
 
-final idsCursosUsuarioProvider = FutureProvider<Set<int>>((ref) async {
+enum ModoVistaHorario { estudiante, ayudante }
+
+final modoVistaHorarioProvider = StateProvider<ModoVistaHorario>(
+  (ref) => ModoVistaHorario.estudiante,
+);
+
+// ── IDs de cursos separados por rol ──────────────────────────────────────────
+
+typedef RolesCursos = ({Set<int> comoEstudiante, Set<int> comoProfesor});
+
+final idsCursosPorRolProvider = FutureProvider<RolesCursos>((ref) async {
   final authState = ref.watch(authProvider);
-  if (authState is! AuthAuthenticated) return {};
+  if (authState is! AuthAuthenticated) {
+    return (comoEstudiante: <int>{}, comoProfesor: <int>{});
+  }
 
   final master = await ref.watch(masterProvider.future);
   final semestre = master.semestres.firstWhere(
@@ -96,25 +107,56 @@ final idsCursosUsuarioProvider = FutureProvider<Set<int>>((ref) async {
     orElse: () => master.semestres.first,
   );
 
-  final dio = ref.watch(dioClientProvider);
-  try {
-    final response = await dio.get<dynamic>(
-      ApiConstants.cursos,
-      queryParameters: <String, dynamic>{
-        'u': authState.usuario.rut,
-        's': semestre.id,
-      },
-    );
-    final data = response.data;
-    if (data is! List) return {};
-    return data
-        .cast<Map<String, dynamic>>()
-        .map((e) => (e['id'] as int?) ?? 0)
-        .where((id) => id != 0)
-        .toSet();
-  } catch (_) {
-    return {};
+  final repo = ref.watch(misCursosRepositoryProvider);
+  final result = await repo.getCursos(authState.usuario.rut, semestre.id);
+
+  if (result is! Success<List<CursoUsuarioEntity>>) {
+    return (comoEstudiante: <int>{}, comoProfesor: <int>{});
   }
+
+  final comoEstudiante = result.data
+      .where((c) => !c.esProfesor)
+      .map((c) => c.id)
+      .toSet();
+  final comoProfesor = result.data
+      .where((c) => c.esProfesor)
+      .map((c) => c.id)
+      .toSet();
+
+  return (comoEstudiante: comoEstudiante, comoProfesor: comoProfesor);
+});
+
+// ── Provider legacy (mantiene compatibilidad con AsistenciaScreen) ────────────
+
+final idsCursosUsuarioProvider = FutureProvider<Set<int>>((ref) async {
+  final roles = await ref.watch(idsCursosPorRolProvider.future);
+  return {...roles.comoEstudiante, ...roles.comoProfesor};
+});
+
+// ── Programar notificaciones cuando el horario del usuario está listo ─────────
+
+/// Se observa desde HorarioScreen con ref.listen para disparar
+/// la programación de notificaciones cuando cambian los datos.
+final notificacionesProgramadasProvider = FutureProvider<void>((ref) async {
+  final authState = ref.watch(authProvider);
+  if (authState is! AuthAuthenticated) return;
+
+  final rolesCursos = await ref.watch(idsCursosPorRolProvider.future);
+  final horarioItems = await ref.watch(horarioProvider.future);
+  final master = await ref.watch(masterProvider.future);
+
+  // Filtrar solo los items del usuario como estudiante
+  final itemsUsuario = horarioItems
+      .where((i) => rolesCursos.comoEstudiante.contains(i.idCurso))
+      .toList();
+
+  if (itemsUsuario.isEmpty) return;
+
+  final notifService = ref.watch(notificacionesServiceProvider);
+  await notifService.programarSemana(
+    items: itemsUsuario,
+    bloques: master.bloques,
+  );
 });
 
 // ── Texto de búsqueda rápida ─────────────────────────────────────────────────
@@ -122,45 +164,58 @@ final idsCursosUsuarioProvider = FutureProvider<Set<int>>((ref) async {
 final horarioSearchProvider = StateProvider<String>((ref) => '');
 
 /// Horario final con búsqueda y filtros locales aplicados.
-///
-/// Filtros locales:
-/// - [dia]: filtra por día de la semana.
-/// - [carreraId]: filtra items que pertenecen a esa carrera.
-/// - búsqueda de texto: filtra por curso/profesor/sala/área.
-/// - ":" activa "mis ramos" (requiere login).
 final horarioFiltradoProvider =
     Provider<AsyncValue<List<HorarioItemEntity>>>((ref) {
   final horario = ref.watch(horarioProvider);
   final search = ref.watch(horarioSearchProvider).trim();
   final filtro = ref.watch(horarioFiltroProvider);
 
-  // Modo "mis ramos": el usuario escribió ":"
   if (search == ':') {
     final authState = ref.watch(authProvider);
     if (authState is! AuthAuthenticated) {
       return const AsyncData([]);
     }
-    final idsCursos = ref.watch(idsCursosUsuarioProvider);
-    return idsCursos.when(
+
+    final rolesCursos = ref.watch(idsCursosPorRolProvider);
+    final modo = ref.watch(modoVistaHorarioProvider);
+    final nombreUsuario = authState.usuario.nombre.toLowerCase();
+
+    return rolesCursos.when(
       loading: () => const AsyncLoading(),
       error: (e, st) => AsyncError(e, st),
-      data: (ids) => horario.whenData(
-        (items) => _aplicarFiltrosLocales(
-          items.where((i) => ids.contains(i.idCurso)).toList(),
-          filtro,
-          '',
-        ),
-      ),
+      data: (roles) {
+        if (modo == ModoVistaHorario.ayudante) {
+          return horario.whenData(
+            (items) => _aplicarFiltrosLocales(
+              items
+                  .where((i) =>
+                      roles.comoProfesor.contains(i.idCurso) &&
+                      i.profesor.toLowerCase().contains(nombreUsuario))
+                  .toList(),
+              filtro,
+              '',
+            ),
+          );
+        }
+
+        return horario.whenData(
+          (items) => _aplicarFiltrosLocales(
+            items
+                .where((i) => roles.comoEstudiante.contains(i.idCurso))
+                .toList(),
+            filtro,
+            '',
+          ),
+        );
+      },
     );
   }
 
-  // Modo búsqueda normal: filtra sobre TODOS los ramos
   return horario.whenData(
     (items) => _aplicarFiltrosLocales(items, filtro, search),
   );
 });
 
-/// Aplica los filtros locales (día, carreraId, búsqueda de texto).
 List<HorarioItemEntity> _aplicarFiltrosLocales(
   List<HorarioItemEntity> items,
   HorarioFiltro filtro,
@@ -168,19 +223,16 @@ List<HorarioItemEntity> _aplicarFiltrosLocales(
 ) {
   var resultado = items;
 
-  // Filtro por día (local)
   if (filtro.dia.isNotEmpty) {
     resultado = resultado.where((i) => i.dia == filtro.dia).toList();
   }
 
-  // Filtro por carrera (local, sobre el campo carreras de cada item)
   if (filtro.carreraId != -1) {
     resultado = resultado
         .where((i) => i.carreras.any((c) => c.id == filtro.carreraId))
         .toList();
   }
 
-  // Búsqueda de texto
   if (search.isNotEmpty) {
     final query = search.toLowerCase();
     resultado = resultado.where((item) {
@@ -196,8 +248,6 @@ List<HorarioItemEntity> _aplicarFiltrosLocales(
 
 // ── Carreras únicas desde los items cargados ──────────────────────────────────
 
-/// Extrae todas las carreras únicas de los ítems del horario actual.
-/// Se usa para el filtro de carrera local.
 final carrerasDisponiblesProvider =
     Provider<AsyncValue<List<CarreraEnHorario>>>((ref) {
   return ref.watch(horarioProvider).whenData((items) {

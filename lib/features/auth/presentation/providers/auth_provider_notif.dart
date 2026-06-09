@@ -1,6 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-
 import '../../../../core/errors/result.dart';
+import '../../../../core/services/notificaciones_service.dart';
 import '../../data/repositories/auth_repository.dart';
 import '../../domain/entities/usuario_entity.dart';
 import '../../domain/repositories/i_auth_repository.dart';
@@ -44,6 +44,7 @@ final authProvider =
     logoutUseCase: LogoutUseCase(repo),
     getUsuarioUseCase: GetUsuarioActualUseCase(repo),
     authRepository: repo,
+    notifService: ref.watch(notificacionesServiceProvider),
   )..checkSession();
 });
 
@@ -52,20 +53,21 @@ class AuthNotifier extends StateNotifier<AuthState> {
   final LogoutUseCase _logout;
   final GetUsuarioActualUseCase _getUsuario;
   final IAuthRepository _authRepository;
+  final NotificacionesService _notifService;
 
   AuthNotifier({
     required LoginUseCase loginUseCase,
     required LogoutUseCase logoutUseCase,
     required GetUsuarioActualUseCase getUsuarioUseCase,
     required IAuthRepository authRepository,
+    required NotificacionesService notifService,
   })  : _login = loginUseCase,
         _logout = logoutUseCase,
         _getUsuario = getUsuarioUseCase,
         _authRepository = authRepository,
+        _notifService = notifService,
         super(const AuthInitial());
 
-  /// Verifica si hay sesión guardada al iniciar la app.
-  /// Restaura la cookie desde SecureStorage antes de consultar la API.
   Future<void> checkSession() async {
     state = const AuthLoading();
     final estaAuth = await _authRepository.estaAutenticado();
@@ -73,9 +75,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
       state = const AuthUnauthenticated();
       return;
     }
-    // La cookie fue restaurada en estaAutenticado() → verificar con la API
     final result = await _getUsuario();
-    // Si la API rechaza la sesión (cookie expirada en servidor), limpiar
     if (result is Failure) {
       await _authRepository.logout();
       state = const AuthUnauthenticated();
@@ -90,11 +90,11 @@ class AuthNotifier extends StateNotifier<AuthState> {
     state = _mapResult(result);
   }
 
-  /// Logout seguro: limpia todo y transiciona a Unauthenticated.
-  /// No lanza excepciones — si algo falla, igual limpia el estado local.
   Future<void> logout() async {
-    await _logout(); // limpiar primero
-    state = const AuthUnauthenticated(); // luego cambiar estado
+    // Cancelar todas las notificaciones al cerrar sesión
+    await _notifService.cancelarTodas();
+    await _logout();
+    state = const AuthUnauthenticated();
   }
 
   AuthState _mapResult(Result<UsuarioEntity> result) {

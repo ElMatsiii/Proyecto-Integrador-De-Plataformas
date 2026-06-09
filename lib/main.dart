@@ -2,14 +2,24 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'core/network/dio_client.dart';
 import 'core/router/app_router.dart';
+import 'core/services/notificaciones_service.dart';
 import 'shared/theme/app_theme.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await DioClient.init();
+
+  // Inicializar el servicio de notificaciones locales
+  final notifService = NotificacionesService();
+  await notifService.init();
+
   runApp(
-    const ProviderScope(
-      child: TongoyApp(),
+    ProviderScope(
+      overrides: [
+        // Inyectamos la instancia ya inicializada
+        notificacionesServiceProvider.overrideWithValue(notifService),
+      ],
+      child: const TongoyApp(),
     ),
   );
 }

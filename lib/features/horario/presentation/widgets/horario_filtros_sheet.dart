@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../providers/horario_provider.dart';
+import '../providers/horario_provider_notif.dart';
 import '../../domain/entities/horario_entity.dart';
 
 // ── Nombres de días que usa la API ────────────────────────────────────────────

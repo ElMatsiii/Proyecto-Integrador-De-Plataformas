@@ -2,9 +2,9 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../features/asistencia/presentation/screens/asistencia_screen.dart';
-import '../../features/auth/presentation/providers/auth_provider.dart';
+import '../../features/auth/presentation/providers/auth_provider_notif.dart';
 import '../../features/auth/presentation/screens/login_screen.dart';
-import '../../features/horario/presentation/screens/horario_screen.dart';
+import '../../features/horario/presentation/screens/horario_screen_notif.dart';
 import '../../features/mis_cursos/presentation/screens/mis_cursos_screen.dart';
 import '../../shared/widgets/main_scaffold.dart';
 

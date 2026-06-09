@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../../auth/presentation/providers/auth_provider.dart';
+import '../../../auth/presentation/providers/auth_provider_notif.dart';
 import '../../domain/entities/horario_entity.dart';
-import '../providers/horario_provider.dart';
+import '../providers/horario_provider_notif.dart';
 import '../widgets/horario_filtros_sheet.dart';
 import '../widgets/horario_grilla.dart';
 import '../widgets/horario_search_bar.dart';
@@ -16,18 +16,11 @@ class HorarioScreen extends ConsumerStatefulWidget {
 
 class _HorarioScreenState extends ConsumerState<HorarioScreen> {
   final _searchController = TextEditingController();
-
-  /// Evita que el listener active ":" más de una vez por sesión.
-  /// Se resetea a false al hacer logout, permitiendo que el próximo
-  /// login (o reinicio con sesión activa) vuelva a activarlo.
   bool _misRamosActivado = false;
 
   @override
   void initState() {
     super.initState();
-    // Caso: la pantalla se monta cuando auth ya resolvió (AuthAuthenticated).
-    // Esto ocurre si el usuario navega de vuelta a Horario después de loguearse,
-    // o si StatefulShellRoute restaura el estado con sesión ya activa.
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final authState = ref.read(authProvider);
       if (authState is AuthAuthenticated && !_misRamosActivado) {
@@ -53,22 +46,35 @@ class _HorarioScreenState extends ConsumerState<HorarioScreen> {
     _searchController.clear();
     ref.read(horarioSearchProvider.notifier).state = '';
     ref.read(horarioFiltroProvider.notifier).reset();
+    ref.read(modoVistaHorarioProvider.notifier).state =
+        ModoVistaHorario.estudiante;
   }
 
   @override
   Widget build(BuildContext context) {
     final horario = ref.watch(horarioFiltradoProvider);
     final master = ref.watch(masterProvider);
+    final rolesCursos = ref.watch(idsCursosPorRolProvider);
+    final esAyudante = rolesCursos.whenOrNull(
+          data: (r) =>
+              r.comoEstudiante.isNotEmpty && r.comoProfesor.isNotEmpty,
+        ) ??
+        false;
+    final modo = ref.watch(modoVistaHorarioProvider);
+    final search = ref.watch(horarioSearchProvider);
+    final modoToggleVisible = esAyudante && search == ':';
 
     ref.listen<AuthState>(authProvider, (previous, next) {
       if (next is AuthAuthenticated && !_misRamosActivado) {
-        // El flag garantiza que solo se activa UNA vez por sesión,
-        // sin importar cuántas veces AuthLoading → AuthAuthenticated
-        // dispare el listener (reinicio con sesión o login manual).
         _activarMisRamos();
       } else if (next is AuthUnauthenticated || next is AuthError) {
         if (_misRamosActivado) _desactivarMisRamos();
       }
+    });
+
+    // Programar notificaciones cuando el horario del usuario esté listo
+    ref.listen(notificacionesProgramadasProvider, (_, next) {
+      // El provider se encarga de todo; solo escuchamos para activarlo
     });
 
     return Scaffold(
@@ -81,7 +87,8 @@ class _HorarioScreenState extends ConsumerState<HorarioScreen> {
             onPressed: () {
               ref
                 ..invalidate(masterProvider)
-                ..invalidate(horarioProvider);
+                ..invalidate(horarioProvider)
+                ..invalidate(notificacionesProgramadasProvider);
             },
           ),
           IconButton(
@@ -91,14 +98,44 @@ class _HorarioScreenState extends ConsumerState<HorarioScreen> {
           ),
         ],
         bottom: PreferredSize(
-          preferredSize: const Size.fromHeight(56),
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
-            child: HorarioSearchBar(
-              controller: _searchController,
-              onChanged: (text) =>
-                  ref.read(horarioSearchProvider.notifier).state = text,
-            ),
+          preferredSize: Size.fromHeight(modoToggleVisible ? 108 : 56),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+                child: HorarioSearchBar(
+                  controller: _searchController,
+                  onChanged: (text) =>
+                      ref.read(horarioSearchProvider.notifier).state = text,
+                ),
+              ),
+              if (modoToggleVisible)
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+                  child: SegmentedButton<ModoVistaHorario>(
+                    style: SegmentedButton.styleFrom(
+                      visualDensity: VisualDensity.compact,
+                    ),
+                    segments: const [
+                      ButtonSegment(
+                        value: ModoVistaHorario.estudiante,
+                        icon: Icon(Icons.person_outline, size: 16),
+                        label: Text('Como estudiante'),
+                      ),
+                      ButtonSegment(
+                        value: ModoVistaHorario.ayudante,
+                        icon: Icon(Icons.co_present_outlined, size: 16),
+                        label: Text('Como ayudante'),
+                      ),
+                    ],
+                    selected: {modo},
+                    onSelectionChanged: (s) => ref
+                        .read(modoVistaHorarioProvider.notifier)
+                        .state = s.first,
+                  ),
+                ),
+            ],
           ),
         ),
       ),
