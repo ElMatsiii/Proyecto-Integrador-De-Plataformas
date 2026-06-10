@@ -143,21 +143,24 @@ class AsistenciaEstudianteRemoteDataSource {
             }
           }
 
-          if (estudianteData == null) continue;
-
-          final estadoRaw = estudianteData is Map
-              ? estudianteData['estado']
-              : null;
+          // En Tongoy solo se registran los presentes en el roster.
+          // Si no figuras en la sesión, estuviste ausente → estado 0.
+          final estado = estudianteData == null
+              ? 0
+              : _parseEstado(
+                  estudianteData is Map ? estudianteData['estado'] : null,
+                );
 
           clases.add(AsistenciaClaseEntity(
             fecha:  fecha,
             bloque: bloque,
-            estado: _parseEstado(estadoRaw),
+            estado: estado,
           ));
         }
         // Caso 2: asistentes es una Lista (formato alternativo que usa la API
         // en algunas versiones — cada elemento tiene 'rut' y 'estado')
         else if (asistentesRaw is List) {
+          var encontrado = false;
           for (final item in asistentesRaw) {
             if (item is! Map) continue;
             final itemRut = _rutSoloDigitos(
@@ -169,7 +172,16 @@ class AsistenciaEstudianteRemoteDataSource {
               bloque: bloque,
               estado: _parseEstado(item['estado']),
             ));
+            encontrado = true;
             break;
+          }
+          // No figura en el roster de la sesión → ausente.
+          if (!encontrado) {
+            clases.add(AsistenciaClaseEntity(
+              fecha:  fecha,
+              bloque: bloque,
+              estado: 0,
+            ));
           }
         }
       }
