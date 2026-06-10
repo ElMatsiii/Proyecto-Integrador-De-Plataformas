@@ -1,5 +1,6 @@
 import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:tongoy_app/features/auth/presentation/providers/auth_provider_notif.dart';
 import '../../../../core/constants/api_constants.dart';
 import '../../../../core/network/dio_client.dart';
 
@@ -114,9 +115,21 @@ class NotasRemoteDataSource {
   }
 }
 
+// ── Providers ─────────────────────────────────────────────────────────────────
+//
+// IMPORTANTE: estos endpoints (notas-estudiante.php) identifican al usuario
+// por la cookie de sesión, NO por un parámetro. Por eso los providers deben
+// observar currentUserProvider: así, al cambiar de cuenta o cerrar sesión,
+// Riverpod los recalcula y NO se sirve el caché de la sesión anterior.
+
 final asistenciasProvider =
     FutureProvider.family<List<AsistenciaCursoEntity>, int>(
         (ref, semestreId) async {
+  // Atar a la sesión actual. Si cambia el usuario (o se cierra sesión),
+  // este provider se invalida solo y vuelve a consultar con la cookie nueva.
+  final usuario = ref.watch(currentUserProvider);
+  if (usuario == null) return [];
+
   final ds = ref.watch(notasRemoteProvider);
   return ds.fetchAsistencias(semestreId);
 });
@@ -124,6 +137,9 @@ final asistenciasProvider =
 final notasProvider =
     FutureProvider.family<List<NotasCursoEntity>, int>(
         (ref, semestreId) async {
+  final usuario = ref.watch(currentUserProvider);
+  if (usuario == null) return [];
+
   final ds = ref.watch(notasRemoteProvider);
   return ds.fetchNotas(semestreId);
 });
