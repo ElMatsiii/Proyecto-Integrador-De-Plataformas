@@ -48,8 +48,13 @@ class HorarioFiltroNotifier extends StateNotifier<HorarioFiltro> {
 final horarioProvider =
     FutureProvider<List<HorarioItemEntity>>((ref) async {
   var filtro = ref.watch(horarioFiltroProvider);
-  final authState = ref.watch(authProvider);
 
+  // Usar currentUserProvider como señal de sesión.
+  // Si el usuario cambia (logout/login), este provider se reconstruye solo.
+  final currentUser = ref.watch(currentUserProvider);
+
+  // Si aún no sabemos el estado de auth, devolver vacío sin hacer request.
+  final authState = ref.watch(authProvider);
   if (authState is AuthInitial || authState is AuthLoading) {
     return [];
   }
@@ -96,8 +101,10 @@ final modoVistaHorarioProvider = StateProvider<ModoVistaHorario>(
 typedef RolesCursos = ({Set<int> comoEstudiante, Set<int> comoProfesor});
 
 final idsCursosPorRolProvider = FutureProvider<RolesCursos>((ref) async {
-  final authState = ref.watch(authProvider);
-  if (authState is! AuthAuthenticated) {
+  // Depender de currentUserProvider garantiza que este provider
+  // se invalide automáticamente al cambiar de cuenta.
+  final currentUser = ref.watch(currentUserProvider);
+  if (currentUser == null) {
     return (comoEstudiante: <int>{}, comoProfesor: <int>{});
   }
 
@@ -108,7 +115,7 @@ final idsCursosPorRolProvider = FutureProvider<RolesCursos>((ref) async {
   );
 
   final repo = ref.watch(misCursosRepositoryProvider);
-  final result = await repo.getCursos(authState.usuario.rut, semestre.id);
+  final result = await repo.getCursos(currentUser.rut, semestre.id);
 
   if (result is! Success<List<CursoUsuarioEntity>>) {
     return (comoEstudiante: <int>{}, comoProfesor: <int>{});
@@ -116,11 +123,11 @@ final idsCursosPorRolProvider = FutureProvider<RolesCursos>((ref) async {
 
   final comoEstudiante = result.data
       .where((c) => !c.esProfesor)
-      .expand((c) => c.todosLosIds)   // incluye id + extraIds
+      .expand((c) => c.todosLosIds)
       .toSet();
   final comoProfesor = result.data
       .where((c) => c.esProfesor)
-      .expand((c) => c.todosLosIds)   // incluye id + extraIds
+      .expand((c) => c.todosLosIds)
       .toSet();
 
   return (comoEstudiante: comoEstudiante, comoProfesor: comoProfesor);
@@ -135,17 +142,14 @@ final idsCursosUsuarioProvider = FutureProvider<Set<int>>((ref) async {
 
 // ── Programar notificaciones cuando el horario del usuario está listo ─────────
 
-/// Se observa desde HorarioScreen con ref.listen para disparar
-/// la programación de notificaciones cuando cambian los datos.
 final notificacionesProgramadasProvider = FutureProvider<void>((ref) async {
-  final authState = ref.watch(authProvider);
-  if (authState is! AuthAuthenticated) return;
+  final currentUser = ref.watch(currentUserProvider);
+  if (currentUser == null) return;
 
   final rolesCursos = await ref.watch(idsCursosPorRolProvider.future);
   final horarioItems = await ref.watch(horarioProvider.future);
   final master = await ref.watch(masterProvider.future);
 
-  // Filtrar solo los items del usuario como estudiante
   final itemsUsuario = horarioItems
       .where((i) => rolesCursos.comoEstudiante.contains(i.idCurso))
       .toList();
@@ -171,14 +175,14 @@ final horarioFiltradoProvider =
   final filtro = ref.watch(horarioFiltroProvider);
 
   if (search == ':') {
-    final authState = ref.watch(authProvider);
-    if (authState is! AuthAuthenticated) {
+    final currentUser = ref.watch(currentUserProvider);
+    if (currentUser == null) {
       return const AsyncData([]);
     }
 
     final rolesCursos = ref.watch(idsCursosPorRolProvider);
     final modo = ref.watch(modoVistaHorarioProvider);
-    final nombreUsuario = authState.usuario.nombre.toLowerCase();
+    final nombreUsuario = currentUser.nombre.toLowerCase();
 
     return rolesCursos.when(
       loading: () => const AsyncLoading(),
@@ -266,8 +270,8 @@ final carrerasDisponiblesProvider =
 // ── Provider auxiliar (carrera del usuario) ───────────────────────────────────
 
 final carreraUsuarioProvider = FutureProvider<int?>((ref) async {
-  final authState = ref.watch(authProvider);
-  if (authState is! AuthAuthenticated) return null;
+  final currentUser = ref.watch(currentUserProvider);
+  if (currentUser == null) return null;
 
   final master = await ref.watch(masterProvider.future);
   final semestre = master.semestres.firstWhere(
