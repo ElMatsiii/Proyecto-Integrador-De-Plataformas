@@ -112,10 +112,7 @@ class MisCursosScreen extends ConsumerWidget {
           FilledButton(
             onPressed: () {
               Navigator.of(dialogContext).pop();
-              // Invalidar providers antes de hacer logout
-              ref..invalidate(misCursosProvider)
-              ..invalidate(idsCursosUsuarioProvider)
-              ..invalidate(carreraUsuarioProvider);
+              // Toda la limpieza de providers se hace dentro de AuthNotifier.logout()
               ref.read(authProvider.notifier).logout();
             },
             child: const Text('Cerrar sesión'),
@@ -407,9 +404,6 @@ class _AsistenciaCard extends StatelessWidget {
             ? colors.secondaryContainer
             : colors.errorContainer;
 
-    // Calcular presentes/ausentes/total desde el porcentaje y total
-    // La API devuelve porcentaje; si también devuelve presentes y total, úsalos.
-    // Por ahora derivamos con lo disponible en AsistenciaCursoEntity.
     final total = asistencia.total;
     final presentes = asistencia.presentes;
     final ausentes = total - presentes;
@@ -514,6 +508,7 @@ class _StatChip extends StatelessWidget {
     );
   }
 }
+
 class _NotasCard extends StatelessWidget {
   final NotasCursoEntity notasCurso;
   const _NotasCard({required this.notasCurso});
