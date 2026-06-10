@@ -1,4 +1,5 @@
 import 'package:dio/dio.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:tongoy_app/features/auth/presentation/providers/auth_provider_notif.dart';
 import '../../../../core/constants/api_constants.dart';
@@ -59,6 +60,15 @@ int _toInt(dynamic value, {int fallback = 0}) {
   return fallback;
 }
 
+/// Lee la primera clave que exista de una lista de candidatos.
+/// Útil mientras confirmamos cómo nombra la API los campos numéricos.
+dynamic _firstKey(Map<String, dynamic> map, List<String> candidatos) {
+  for (final k in candidatos) {
+    if (map.containsKey(k) && map[k] != null) return map[k];
+  }
+  return null;
+}
+
 class NotasRemoteDataSource {
   final Dio _dio;
   const NotasRemoteDataSource(this._dio);
@@ -70,19 +80,45 @@ class NotasRemoteDataSource {
     );
     final list = response.data ?? [];
 
+    // ── LOG DE DIAGNÓSTICO ──────────────────────────────────────────────────
+    // Quitar este bloque una vez confirmadas las claves reales de la API.
+    if (kDebugMode) {
+      debugPrint('=== ASISTENCIAS RAW (op=as) ===');
+      debugPrint('Total entradas: ${list.length}');
+      if (list.isNotEmpty) {
+        final primero = list.first;
+        if (primero is Map) {
+          debugPrint('Claves del primer item: ${primero.keys.toList()}');
+          debugPrint('Primer item completo:    $primero');
+        } else {
+          debugPrint('El primer item NO es Map → ${primero.runtimeType}: $primero');
+        }
+      }
+      debugPrint('===============================');
+    }
+    // ────────────────────────────────────────────────────────────────────────
+
     return list.cast<Map<String, dynamic>>().map((e) {
-      // Usar _toInt para manejar tanto int como String
-      final porcentaje = _toInt(e['porcentaje']);
-      final presentes  = _toInt(e['presentes']);
-      final total      = _toInt(e['total']);
+      // Intentamos primero las claves esperadas y, como respaldo, algunos
+      // nombres alternativos que suele usar la API Tongoy. Cuando confirmes
+      // los nombres reales en el log, deja solo el correcto.
+      final porcentaje = _toInt(
+        _firstKey(e, ['porcentaje', 'por', 'pct', 'porc']),
+      );
+      final presentes = _toInt(
+        _firstKey(e, ['presentes', 'pre', 'asistidas', 'asistencias']),
+      );
+      final total = _toInt(
+        _firstKey(e, ['total', 'tot', 'clases', 'sesiones']),
+      );
 
       return AsistenciaCursoEntity(
-        nombre:     (e['nombre']  as String?) ?? '',
-        codigo:     (e['codigo']  as String?) ?? '',
-        seccion:    (e['seccion'] as String?) ?? '',
+        nombre: (e['nombre'] as String?) ?? '',
+        codigo: (e['codigo'] as String?) ?? '',
+        seccion: (e['seccion'] as String?) ?? '',
         porcentaje: porcentaje,
-        presentes:  presentes,
-        total:      total,
+        presentes: presentes,
+        total: total,
       );
     }).toList();
   }
@@ -97,13 +133,13 @@ class NotasRemoteDataSource {
       final notasRaw =
           (e['notas'] as List<dynamic>? ?? []).cast<Map<String, dynamic>>();
       return NotasCursoEntity(
-        codigo:     (e['codigo']     as String?) ?? '',
+        codigo: (e['codigo'] as String?) ?? '',
         asignatura: (e['asignatura'] as String?) ?? '',
-        seccion:    (e['seccion']    as String?) ?? '',
+        seccion: (e['seccion'] as String?) ?? '',
         notas: notasRaw
             .map((n) => NotaCursoEntity(
                   nombre: (n['nombre'] as String?) ?? '',
-                  nota:   (n['nota']   as String?) ?? '',
+                  nota: (n['nota'] as String?) ?? '',
                 ),)
             .where((n) =>
                 n.nota.isNotEmpty &&
