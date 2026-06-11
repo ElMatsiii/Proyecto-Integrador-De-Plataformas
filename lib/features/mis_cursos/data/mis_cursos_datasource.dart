@@ -104,7 +104,7 @@ class MisCursosRepository implements IMisCursosRepository {
         extra:    (entradaA['extra']   as String?) ?? '',
         pid:      (entradaA['pid']     as int?)    ?? 0,
         extraIds: todosLosIds,
-      ));
+      ),);
     }
 
     return Success(entidades);

@@ -51,6 +51,7 @@ final horarioProvider =
 
   // Usar currentUserProvider como señal de sesión.
   // Si el usuario cambia (logout/login), este provider se reconstruye solo.
+  // ignore: unused_local_variable
   final currentUser = ref.watch(currentUserProvider);
 
   // Si aún no sabemos el estado de auth, devolver vacío sin hacer request.
@@ -194,7 +195,7 @@ final horarioFiltradoProvider =
               items
                   .where((i) =>
                       roles.comoProfesor.contains(i.idCurso) &&
-                      i.profesor.toLowerCase().contains(nombreUsuario))
+                      i.profesor.toLowerCase().contains(nombreUsuario),)
                   .toList(),
               filtro,
               '',

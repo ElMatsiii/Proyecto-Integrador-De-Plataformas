@@ -1,15 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 import 'package:url_launcher/url_launcher.dart';
+
 import '../../../auth/presentation/providers/auth_provider_notif.dart';
 import '../../../horario/presentation/providers/horario_provider_notif.dart';
 import '../../../mis_cursos/data/mis_cursos_datasource.dart';
 import '../../../mis_cursos/data/notas_datasource.dart';
 import '../../../mis_cursos/domain/entities/curso_usuario_entity.dart';
 import '../../data/asistencia_datasource.dart';
-import 'package:go_router/go_router.dart';
 // ── Pantalla principal ────────────────────────────────────────────────────────
 
 class AsistenciaScreen extends ConsumerStatefulWidget {
@@ -339,7 +340,7 @@ class _DetalleAsistencia extends ConsumerWidget {
         // Usamos el rut string exacto del usuario autenticado,
         // que coincide con las claves del JSON de asist_marcar4.php
         rut: rutEstudiante,
-      )),
+      ),),
     );
 
     return asistenciasAsync.when(
@@ -348,7 +349,7 @@ class _DetalleAsistencia extends ConsumerWidget {
       data: (asistencias) {
         final resumen = asistencias
             .where((a) =>
-                a.codigo == curso.codigo && a.seccion == curso.seccion)
+                a.codigo == curso.codigo && a.seccion == curso.seccion,)
             .firstOrNull;
 
         return detalleAsync.when(

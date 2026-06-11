@@ -116,7 +116,7 @@ class NotificacionesService {
         '📚 Clase en $_minutosAntes minutos',
         '$nombreCorto · Bloque ${item.bloque} · ${item.sala}',
         fechaNotif,
-        NotificationDetails(
+        const NotificationDetails(
           android: AndroidNotificationDetails(
             _channelId,
             _channelName,
@@ -125,7 +125,7 @@ class NotificacionesService {
             priority: Priority.high,
             icon: '@mipmap/ic_launcher',
           ),
-          iOS: const DarwinNotificationDetails(
+          iOS: DarwinNotificationDetails(
             presentAlert: true,
             presentBadge: true,
             presentSound: true,

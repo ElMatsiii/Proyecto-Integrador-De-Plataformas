@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../providers/horario_provider_notif.dart';
 import '../../domain/entities/horario_entity.dart';
+import '../providers/horario_provider_notif.dart';
 
 // ── Nombres de días que usa la API ────────────────────────────────────────────
 
@@ -464,7 +464,8 @@ class _BusquedaDropdown<T> extends StatefulWidget {
 }
 
 class _BusquedaDropdownState<T> extends State<_BusquedaDropdown<T>> {
-  String _query = '';
+  // ignore: unused_field
+  final String _query = '';
 
   String get _labelActual {
     if (widget.value == null) return '';

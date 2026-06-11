@@ -155,7 +155,7 @@ class AsistenciaEstudianteRemoteDataSource {
             fecha:  fecha,
             bloque: bloque,
             estado: estado,
-          ));
+          ),);
         }
         // Caso 2: asistentes es una Lista (formato alternativo que usa la API
         // en algunas versiones — cada elemento tiene 'rut' y 'estado')
@@ -171,7 +171,7 @@ class AsistenciaEstudianteRemoteDataSource {
               fecha:  fecha,
               bloque: bloque,
               estado: _parseEstado(item['estado']),
-            ));
+            ),);
             encontrado = true;
             break;
           }
@@ -181,13 +181,13 @@ class AsistenciaEstudianteRemoteDataSource {
               fecha:  fecha,
               bloque: bloque,
               estado: 0,
-            ));
+            ),);
           }
         }
       }
 
       clases.sort((a, b) =>
-          '${b.fecha}:${b.bloque}'.compareTo('${a.fecha}:${a.bloque}'));
+          '${b.fecha}:${b.bloque}'.compareTo('${a.fecha}:${a.bloque}'),);
 
       if (kDebugMode) {
         debugPrint('Clases encontradas para el estudiante: ${clases.length}');
