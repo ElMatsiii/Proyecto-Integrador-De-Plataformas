@@ -34,6 +34,18 @@ void main() {
     await tester.pumpWidget(
       const ProviderScope(child: _TestApp()),
     );
-    expect(find.byType(Router), findsOneWidget);
+
+    // MaterialApp siempre está en el árbol — es lo que pumpWidget renderiza.
+    expect(find.byType(MaterialApp), findsOneWidget);
+  });
+
+  testWidgets('muestra el contenido de la ruta inicial', (WidgetTester tester) async {
+    await tester.pumpWidget(
+      const ProviderScope(child: _TestApp()),
+    );
+    // Dar tiempo al router a resolver la ruta inicial
+    await tester.pumpAndSettle();
+
+    expect(find.text('test'), findsOneWidget);
   });
 }
