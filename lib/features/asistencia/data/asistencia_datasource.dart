@@ -1,5 +1,4 @@
 import 'package:dio/dio.dart';
-import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/errors/app_error.dart';
 import '../../../../core/errors/result.dart';
@@ -50,7 +49,6 @@ class AsistenciaClaseEntity {
 
 /// Extrae solo los dígitos numéricos de un RUT.
 /// "9586127K" → "9586127"
-/// "216542363" → "216542363" (sin cambios, ya es solo números)
 String _rutSoloDigitos(String rut) =>
     rut.replaceAll(RegExp(r'[^0-9]'), '');
 
@@ -84,36 +82,6 @@ class AsistenciaEstudianteRemoteDataSource {
       if (data == null || data.isEmpty) return const Success([]);
 
       final rutDigitos = _rutSoloDigitos(rutEstudiante);
-
-      // LOG: ver cuántas entradas trae la API y las claves de asistentes
-      if (kDebugMode) {
-        debugPrint('=== ASISTENCIA DEBUG ===');
-        debugPrint('RUT buscado (original): $rutEstudiante');
-        debugPrint('RUT buscado (dígitos):  $rutDigitos');
-        debugPrint('Total entradas en API:  ${data.length}');
-        for (final entry in data.entries) {
-          final clase = entry.value;
-          if (clase is Map) {
-            final asistentes = clase['asistentes'];
-            if (asistentes is Map) {
-              final claves = asistentes.keys.toList();
-              final tieneEstudiante = claves.any(
-                (k) => _rutSoloDigitos(k.toString()) == rutDigitos,
-              );
-              debugPrint(
-                'Clase ${entry.key}: '
-                '${claves.length} asistentes, '
-                'estudiante presente: $tieneEstudiante, '
-                'claves: ${claves.take(3)}...',
-              );
-            } else {
-              debugPrint('Clase ${entry.key}: asistentes no es Map → ${asistentes.runtimeType}');
-            }
-          }
-        }
-        debugPrint('========================');
-      }
-
       final clases = <AsistenciaClaseEntity>[];
 
       for (final entry in data.entries) {
@@ -130,10 +98,8 @@ class AsistenciaEstudianteRemoteDataSource {
         if (asistentesRaw is Map) {
           final asistentes = asistentesRaw.cast<String, dynamic>();
 
-          // Buscar por dígitos exactos
           dynamic estudianteData = asistentes[rutDigitos];
 
-          // Fallback: buscar comparando solo dígitos de la clave
           if (estudianteData == null) {
             for (final k in asistentes.keys) {
               if (_rutSoloDigitos(k) == rutDigitos) {
@@ -143,8 +109,6 @@ class AsistenciaEstudianteRemoteDataSource {
             }
           }
 
-          // En Tongoy solo se registran los presentes en el roster.
-          // Si no figuras en la sesión, estuviste ausente → estado 0.
           final estado = estudianteData == null
               ? 0
               : _parseEstado(
@@ -157,8 +121,7 @@ class AsistenciaEstudianteRemoteDataSource {
             estado: estado,
           ),);
         }
-        // Caso 2: asistentes es una Lista (formato alternativo que usa la API
-        // en algunas versiones — cada elemento tiene 'rut' y 'estado')
+        // Caso 2: asistentes es una Lista
         else if (asistentesRaw is List) {
           var encontrado = false;
           for (final item in asistentesRaw) {
@@ -175,7 +138,6 @@ class AsistenciaEstudianteRemoteDataSource {
             encontrado = true;
             break;
           }
-          // No figura en el roster de la sesión → ausente.
           if (!encontrado) {
             clases.add(AsistenciaClaseEntity(
               fecha:  fecha,
@@ -188,10 +150,6 @@ class AsistenciaEstudianteRemoteDataSource {
 
       clases.sort((a, b) =>
           '${b.fecha}:${b.bloque}'.compareTo('${a.fecha}:${a.bloque}'),);
-
-      if (kDebugMode) {
-        debugPrint('Clases encontradas para el estudiante: ${clases.length}');
-      }
 
       return Success(clases);
     } on DioException catch (e) {

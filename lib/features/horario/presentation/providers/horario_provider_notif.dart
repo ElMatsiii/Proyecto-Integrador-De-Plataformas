@@ -49,10 +49,9 @@ final horarioProvider =
     FutureProvider<List<HorarioItemEntity>>((ref) async {
   var filtro = ref.watch(horarioFiltroProvider);
 
-  // Usar currentUserProvider como señal de sesión.
-  // Si el usuario cambia (logout/login), este provider se reconstruye solo.
-  // ignore: unused_local_variable
-  final currentUser = ref.watch(currentUserProvider);
+  // Observar currentUserProvider para que este provider se reconstruya
+  // automáticamente cuando cambia la sesión (login / logout).
+  ref.watch(currentUserProvider);
 
   // Si aún no sabemos el estado de auth, devolver vacío sin hacer request.
   final authState = ref.watch(authProvider);
@@ -83,7 +82,8 @@ final horarioProvider =
   final result = await useCase(filtroApi);
 
   if (result is! Success<List<HorarioItemEntity>>) {
-    throw Exception((result as Failure<List<HorarioItemEntity>>).error.message);
+    throw Exception(
+        (result as Failure<List<HorarioItemEntity>>).error.message,);
   }
 
   return result.data;
@@ -102,8 +102,6 @@ final modoVistaHorarioProvider = StateProvider<ModoVistaHorario>(
 typedef RolesCursos = ({Set<int> comoEstudiante, Set<int> comoProfesor});
 
 final idsCursosPorRolProvider = FutureProvider<RolesCursos>((ref) async {
-  // Depender de currentUserProvider garantiza que este provider
-  // se invalide automáticamente al cambiar de cuenta.
   final currentUser = ref.watch(currentUserProvider);
   if (currentUser == null) {
     return (comoEstudiante: <int>{}, comoProfesor: <int>{});

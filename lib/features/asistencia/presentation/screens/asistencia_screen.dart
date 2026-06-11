@@ -11,6 +11,7 @@ import '../../../mis_cursos/data/mis_cursos_datasource.dart';
 import '../../../mis_cursos/data/notas_datasource.dart';
 import '../../../mis_cursos/domain/entities/curso_usuario_entity.dart';
 import '../../data/asistencia_datasource.dart';
+
 // ── Pantalla principal ────────────────────────────────────────────────────────
 
 class AsistenciaScreen extends ConsumerStatefulWidget {
@@ -93,8 +94,6 @@ class _AsistenciaScreenState extends ConsumerState<AsistenciaScreen> {
           return _DetalleAsistencia(
             curso: _cursoSeleccionado!,
             semestreId: semestreActual.id,
-            // El rut del usuario autenticado es la clave exacta en el JSON
-            // de asist_marcar4.php (ej: "216542363" o "18758339K")
             rutEstudiante: usuario.rut,
           );
         },
@@ -130,7 +129,6 @@ class _ListaCursos extends ConsumerWidget {
     final cursosAsync = ref.watch(
       misCursosProvider((usuario: usuario, semestre: semestreId)),
     );
-    // Mismo provider que Mis Cursos → porcentajes oficiales correctos
     final asistenciasAsync = ref.watch(asistenciasProvider(semestreId));
 
     return cursosAsync.when(
@@ -302,16 +300,25 @@ class _MiniChip extends StatelessWidget {
   final String label;
   final Color color;
   final Color textColor;
-  const _MiniChip({required this.label, required this.color, required this.textColor});
+  const _MiniChip({
+    required this.label,
+    required this.color,
+    required this.textColor,
+  });
 
   @override
   Widget build(BuildContext context) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-      decoration: BoxDecoration(color: color, borderRadius: BorderRadius.circular(20)),
+      decoration:
+          BoxDecoration(color: color, borderRadius: BorderRadius.circular(20)),
       child: Text(
         label,
-        style: TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: textColor),
+        style: TextStyle(
+          fontSize: 10,
+          fontWeight: FontWeight.w600,
+          color: textColor,
+        ),
       ),
     );
   }
@@ -337,8 +344,6 @@ class _DetalleAsistencia extends ConsumerWidget {
       asistenciaEstudianteProvider((
         curso: curso.id,
         semestre: semestreId,
-        // Usamos el rut string exacto del usuario autenticado,
-        // que coincide con las claves del JSON de asist_marcar4.php
         rut: rutEstudiante,
       ),),
     );
@@ -359,7 +364,8 @@ class _DetalleAsistencia extends ConsumerWidget {
               if (resumen != null)
                 _ResumenCard(resumen: resumen, clases: const []),
               Expanded(
-                child: Center(child: Text('No se pudo cargar el detalle: $e')),
+                child: Center(
+                    child: Text('No se pudo cargar el detalle: $e'),),
               ),
             ],
           ),
@@ -419,9 +425,11 @@ class _VistaDetalle extends StatelessWidget {
             padding: const EdgeInsets.fromLTRB(16, 4, 16, 8),
             child: Row(
               children: [
-                Icon(Icons.calendar_month_outlined,
-                    size: 16,
-                    color: Theme.of(context).colorScheme.primary,),
+                Icon(
+                  Icons.calendar_month_outlined,
+                  size: 16,
+                  color: Theme.of(context).colorScheme.primary,
+                ),
                 const SizedBox(width: 6),
                 Text(
                   'Registro de clases (${clases.length} bloques)',
@@ -524,7 +532,6 @@ class _FechaCard extends StatelessWidget {
       ),
       child: Column(
         children: [
-          // Encabezado
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
             decoration: BoxDecoration(
@@ -562,7 +569,9 @@ class _FechaCard extends StatelessWidget {
                             const SizedBox(width: 6),
                             Container(
                               padding: const EdgeInsets.symmetric(
-                                  horizontal: 6, vertical: 1,),
+                                horizontal: 6,
+                                vertical: 1,
+                              ),
                               decoration: BoxDecoration(
                                 color: colors.primary,
                                 borderRadius: BorderRadius.circular(10),
@@ -589,7 +598,6 @@ class _FechaCard extends StatelessWidget {
                     ],
                   ),
                 ),
-                // Estado del día
                 Container(
                   padding:
                       const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
@@ -609,7 +617,6 @@ class _FechaCard extends StatelessWidget {
               ],
             ),
           ),
-          // Bloques
           Padding(
             padding: const EdgeInsets.all(12),
             child: Wrap(
@@ -638,27 +645,27 @@ class _BloquePill extends StatelessWidget {
       1 => (
           colors.primaryContainer,
           colors.onPrimaryContainer,
-          Icons.check_circle_outline
+          Icons.check_circle_outline,
         ),
       0 => (
           colors.errorContainer,
           colors.onErrorContainer,
-          Icons.cancel_outlined
+          Icons.cancel_outlined,
         ),
       3 => (
           colors.tertiaryContainer,
           colors.onTertiaryContainer,
-          Icons.verified_outlined
+          Icons.verified_outlined,
         ),
       -1 => (
           colors.secondaryContainer,
           colors.onSecondaryContainer,
-          Icons.schedule_outlined
+          Icons.schedule_outlined,
         ),
       _ => (
           colors.surfaceContainerHighest,
           colors.onSurface,
-          Icons.help_outline
+          Icons.help_outline,
         ),
     };
 
@@ -758,7 +765,8 @@ class _ResumenCard extends StatelessWidget {
                       child: LinearProgressIndicator(
                         value: pct / 100,
                         minHeight: 8,
-                        backgroundColor: colors.surface.withValues(alpha: 0.5),
+                        backgroundColor:
+                            colors.surface.withValues(alpha: 0.5),
                         color: pct >= 75
                             ? colors.primary
                             : pct >= 50
@@ -838,10 +846,16 @@ class _Stat extends StatelessWidget {
         const SizedBox(height: 2),
         Text(
           '$valor',
-          style: TextStyle(fontSize: 17, fontWeight: FontWeight.w700, color: c),
+          style: TextStyle(
+            fontSize: 17,
+            fontWeight: FontWeight.w700,
+            color: c,
+          ),
         ),
-        Text(label,
-            style: TextStyle(fontSize: 10, color: c.withValues(alpha: 0.6)),),
+        Text(
+          label,
+          style: TextStyle(fontSize: 10, color: c.withValues(alpha: 0.6)),
+        ),
       ],
     );
   }
@@ -866,8 +880,21 @@ class _QrScannerSheetState extends State<_QrScannerSheet> {
     super.dispose();
   }
 
-  // Dominios autorizados para QR de asistencia
-  static const _dominiosPermitidos = {'losvilos.ucn.cl'};
+  /// Dominio autorizado para QR de asistencia.
+  static const _dominioPermitido = 'losvilos.ucn.cl';
+
+  /// Solo estos endpoints de asistencia son válidos.
+  /// Cualquier otra URL del dominio (incluso otras rutas) es rechazada.
+  static const _rutasPermitidas = {
+    '/hawaii/asist_marcar6.php',
+    '/tongoy/asist_marcar6.php',
+  };
+
+  bool _esQrValido(Uri uri) {
+    if (uri.scheme != 'https') return false;
+    if (uri.host != _dominioPermitido) return false;
+    return _rutasPermitidas.contains(uri.path);
+  }
 
   Future<void> _onDetect(BarcodeCapture capture) async {
     if (_detectado) return;
@@ -880,16 +907,16 @@ class _QrScannerSheetState extends State<_QrScannerSheet> {
     if (!mounted) return;
     Navigator.of(context).pop();
     final uri = Uri.tryParse(raw);
-    final dominioPermitido =
-        uri != null && _dominiosPermitidos.contains(uri.host);
-    if (uri != null && uri.scheme == 'https' && dominioPermitido) {
+    if (uri != null && _esQrValido(uri)) {
       if (await canLaunchUrl(uri)) {
         await launchUrl(uri, mode: LaunchMode.inAppBrowserView);
       }
     } else {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('QR no reconocido o dominio no autorizado')),
+          const SnackBar(
+            content: Text('QR no reconocido o endpoint no autorizado'),
+          ),
         );
       }
     }
@@ -922,7 +949,9 @@ class _QrScannerSheetState extends State<_QrScannerSheet> {
               borderRadius:
                   const BorderRadius.vertical(bottom: Radius.circular(16)),
               child: MobileScanner(
-                  controller: _controller, onDetect: _onDetect,),
+                controller: _controller,
+                onDetect: _onDetect,
+              ),
             ),
           ),
           Padding(

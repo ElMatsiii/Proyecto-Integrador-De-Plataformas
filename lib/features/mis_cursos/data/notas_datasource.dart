@@ -1,5 +1,4 @@
 import 'package:dio/dio.dart';
-import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:tongoy_app/features/auth/presentation/providers/auth_provider_notif.dart';
 import '../../../../core/constants/api_constants.dart';
@@ -51,7 +50,6 @@ final notasRemoteProvider = Provider<NotasRemoteDataSource>((ref) {
 });
 
 /// Convierte un valor dinámico de la API a int de forma segura.
-/// La API Tongoy a veces devuelve números como int, otras como String.
 int _toInt(dynamic value, {int fallback = 0}) {
   if (value == null) return fallback;
   if (value is int) return value;
@@ -61,7 +59,6 @@ int _toInt(dynamic value, {int fallback = 0}) {
 }
 
 /// Lee la primera clave que exista de una lista de candidatos.
-/// Útil mientras confirmamos cómo nombra la API los campos numéricos.
 dynamic _firstKey(Map<String, dynamic> map, List<String> candidatos) {
   for (final k in candidatos) {
     if (map.containsKey(k) && map[k] != null) return map[k];
@@ -80,28 +77,7 @@ class NotasRemoteDataSource {
     );
     final list = response.data ?? [];
 
-    // ── LOG DE DIAGNÓSTICO ──────────────────────────────────────────────────
-    // Quitar este bloque una vez confirmadas las claves reales de la API.
-    if (kDebugMode) {
-      debugPrint('=== ASISTENCIAS RAW (op=as) ===');
-      debugPrint('Total entradas: ${list.length}');
-      if (list.isNotEmpty) {
-        final primero = list.first;
-        if (primero is Map) {
-          debugPrint('Claves del primer item: ${primero.keys.toList()}');
-          debugPrint('Primer item completo:    $primero');
-        } else {
-          debugPrint('El primer item NO es Map → ${primero.runtimeType}: $primero');
-        }
-      }
-      debugPrint('===============================');
-    }
-    // ────────────────────────────────────────────────────────────────────────
-
     return list.cast<Map<String, dynamic>>().map((e) {
-      // Intentamos primero las claves esperadas y, como respaldo, algunos
-      // nombres alternativos que suele usar la API Tongoy. Cuando confirmes
-      // los nombres reales en el log, deja solo el correcto.
       final porcentaje = _toInt(
         _firstKey(e, ['porcentaje', 'por', 'pct', 'porc']),
       );
@@ -152,17 +128,10 @@ class NotasRemoteDataSource {
 }
 
 // ── Providers ─────────────────────────────────────────────────────────────────
-//
-// IMPORTANTE: estos endpoints (notas-estudiante.php) identifican al usuario
-// por la cookie de sesión, NO por un parámetro. Por eso los providers deben
-// observar currentUserProvider: así, al cambiar de cuenta o cerrar sesión,
-// Riverpod los recalcula y NO se sirve el caché de la sesión anterior.
 
 final asistenciasProvider =
     FutureProvider.family<List<AsistenciaCursoEntity>, int>(
         (ref, semestreId) async {
-  // Atar a la sesión actual. Si cambia el usuario (o se cierra sesión),
-  // este provider se invalida solo y vuelve a consultar con la cookie nueva.
   final usuario = ref.watch(currentUserProvider);
   if (usuario == null) return [];
 

@@ -8,8 +8,10 @@ import '../../features/horario/presentation/screens/horario_screen_notif.dart';
 import '../../features/mis_cursos/presentation/screens/mis_cursos_screen.dart';
 import '../../shared/widgets/main_scaffold.dart';
 
+/// Rutas que requieren sesión activa.
+const _rutasPrivadas = {AppRoutes.misCursos, AppRoutes.asistencia};
+
 final appRouterProvider = Provider<GoRouter>((ref) {
-  // Escucha cambios de auth para refrescar el router
   final notifier = _AuthRouterNotifier(ref);
 
   return GoRouter(
@@ -18,17 +20,23 @@ final appRouterProvider = Provider<GoRouter>((ref) {
     refreshListenable: notifier,
     redirect: (context, state) {
       final authState = ref.read(authProvider);
-      final isLogin = state.matchedLocation == AppRoutes.login;
+      final location = state.matchedLocation;
+      final isLogin = location == AppRoutes.login;
 
-      // Si está en loading/initial, no redirigir todavía
+      // Todavía cargando — no redirigir
       if (authState is AuthInitial || authState is AuthLoading) return null;
 
-      // Si va al login y ya está autenticado → a mis cursos
-      if (isLogin && authState is AuthAuthenticated) {
-        return AppRoutes.misCursos;
+      final autenticado = authState is AuthAuthenticated;
+
+      // Si ya está autenticado y va al login → mis cursos
+      if (isLogin && autenticado) return AppRoutes.misCursos;
+
+      // Si no está autenticado e intenta una ruta privada → login
+      if (!autenticado && _rutasPrivadas.contains(location)) {
+        return AppRoutes.login;
       }
 
-      return null; // Sin redirección — todas las rutas son accesibles
+      return null;
     },
     routes: [
       StatefulShellRoute.indexedStack(

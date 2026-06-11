@@ -464,8 +464,6 @@ class _BusquedaDropdown<T> extends StatefulWidget {
 }
 
 class _BusquedaDropdownState<T> extends State<_BusquedaDropdown<T>> {
-  // ignore: unused_field
-  final String _query = '';
 
   String get _labelActual {
     if (widget.value == null) return '';
