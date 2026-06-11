@@ -9,7 +9,7 @@ import '../../../mis_cursos/data/mis_cursos_datasource.dart';
 import '../../../mis_cursos/data/notas_datasource.dart';
 import '../../../mis_cursos/domain/entities/curso_usuario_entity.dart';
 import '../../data/asistencia_datasource.dart';
-
+import 'package:go_router/go_router.dart';
 // ── Pantalla principal ────────────────────────────────────────────────────────
 
 class AsistenciaScreen extends ConsumerStatefulWidget {
@@ -37,7 +37,7 @@ class _AsistenciaScreenState extends ConsumerState<AsistenciaScreen> {
               const Text('Inicia sesión para ver la asistencia'),
               const SizedBox(height: 20),
               FilledButton.icon(
-                onPressed: () {},
+                onPressed: () => context.push('/login'),
                 icon: const Icon(Icons.login),
                 label: const Text('Iniciar sesión'),
               ),
@@ -865,6 +865,9 @@ class _QrScannerSheetState extends State<_QrScannerSheet> {
     super.dispose();
   }
 
+  // Dominios autorizados para QR de asistencia
+  static const _dominiosPermitidos = {'losvilos.ucn.cl'};
+
   Future<void> _onDetect(BarcodeCapture capture) async {
     if (_detectado) return;
     final barcode = capture.barcodes.firstOrNull;
@@ -876,14 +879,17 @@ class _QrScannerSheetState extends State<_QrScannerSheet> {
     if (!mounted) return;
     Navigator.of(context).pop();
     final uri = Uri.tryParse(raw);
-    if (uri != null && (uri.scheme == 'http' || uri.scheme == 'https')) {
+    final dominioPermitido =
+        uri != null && _dominiosPermitidos.contains(uri.host);
+    if (uri != null && uri.scheme == 'https' && dominioPermitido) {
       if (await canLaunchUrl(uri)) {
-        await launchUrl(uri, mode: LaunchMode.externalApplication);
+        await launchUrl(uri, mode: LaunchMode.inAppBrowserView);
       }
     } else {
       if (mounted) {
-        ScaffoldMessenger.of(context)
-            .showSnackBar(SnackBar(content: Text('QR: $raw')));
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('QR no reconocido o dominio no autorizado')),
+        );
       }
     }
   }

@@ -46,7 +46,6 @@ class AuthRemoteDataSource {
         return const Failure(AuthError('Sin sesión activa'));
       }
       final item = list.first as Map<String, dynamic>;
-      print('USUARIO ACTUAL RUT: ${item['rut']}');
       return Success(<String, String>{
         'rut': (item['rut'] as String?) ?? '',
         'nombre': (item['nombre'] as String?) ?? '',
