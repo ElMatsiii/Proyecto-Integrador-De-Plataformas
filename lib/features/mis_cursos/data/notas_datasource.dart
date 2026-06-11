@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:tongoy_app/features/auth/presentation/providers/auth_provider_notif.dart';
 import '../../../../core/constants/api_constants.dart';
 import '../../../../core/network/dio_client.dart';
+import '../../../../core/utils/json_read.dart';
 
 class AsistenciaCursoEntity {
   final String nombre;
@@ -49,16 +50,6 @@ final notasRemoteProvider = Provider<NotasRemoteDataSource>((ref) {
   return NotasRemoteDataSource(ref.watch(dioClientProvider));
 });
 
-/// Convierte un valor dinámico de la API a int de forma segura.
-int _toInt(dynamic value, {int fallback = 0}) {
-  if (value == null) return fallback;
-  if (value is int) return value;
-  if (value is double) return value.toInt();
-  if (value is String) return int.tryParse(value) ?? fallback;
-  return fallback;
-}
-
-/// Lee la primera clave que exista de una lista de candidatos.
 dynamic _firstKey(Map<String, dynamic> map, List<String> candidatos) {
   for (final k in candidatos) {
     if (map.containsKey(k) && map[k] != null) return map[k];
@@ -75,23 +66,22 @@ class NotasRemoteDataSource {
       ApiConstants.notasEstudiante,
       queryParameters: <String, dynamic>{'s': semestreId, 'op': 'as'},
     );
-    final list = response.data ?? [];
 
-    return list.cast<Map<String, dynamic>>().map((e) {
-      final porcentaje = _toInt(
+    return asJsonMapList(response.data).map((e) {
+      final porcentaje = readInt(
         _firstKey(e, ['porcentaje', 'por', 'pct', 'porc']),
       );
-      final presentes = _toInt(
+      final presentes = readInt(
         _firstKey(e, ['presentes', 'pre', 'asistidas', 'asistencias']),
       );
-      final total = _toInt(
+      final total = readInt(
         _firstKey(e, ['total', 'tot', 'clases', 'sesiones']),
       );
 
       return AsistenciaCursoEntity(
-        nombre: (e['nombre'] as String?) ?? '',
-        codigo: (e['codigo'] as String?) ?? '',
-        seccion: (e['seccion'] as String?) ?? '',
+        nombre: readString(e['nombre']),
+        codigo: readString(e['codigo']),
+        seccion: readString(e['seccion']),
         porcentaje: porcentaje,
         presentes: presentes,
         total: total,
@@ -104,47 +94,49 @@ class NotasRemoteDataSource {
       ApiConstants.notasEstudiante,
       queryParameters: <String, dynamic>{'s': semestreId, 'op': 'list'},
     );
-    final list = response.data ?? [];
-    return list.cast<Map<String, dynamic>>().map((e) {
-      final notasRaw =
-          (e['notas'] as List<dynamic>? ?? []).cast<Map<String, dynamic>>();
+
+    return asJsonMapList(response.data).map((e) {
+      final notasRaw = asJsonMapList(e['notas']);
       return NotasCursoEntity(
-        codigo: (e['codigo'] as String?) ?? '',
-        asignatura: (e['asignatura'] as String?) ?? '',
-        seccion: (e['seccion'] as String?) ?? '',
+        codigo: readString(e['codigo']),
+        asignatura: readString(e['asignatura']),
+        seccion: readString(e['seccion']),
         notas: notasRaw
-            .map((n) => NotaCursoEntity(
-                  nombre: (n['nombre'] as String?) ?? '',
-                  nota: (n['nota'] as String?) ?? '',
-                ),)
-            .where((n) =>
-                n.nota.isNotEmpty &&
-                n.nombre != 'Nombre' &&
-                n.nombre != 'Par',)
+            .map(
+              (n) => NotaCursoEntity(
+                nombre: readString(n['nombre']),
+                nota: readString(n['nota']),
+              ),
+            )
+            .where(
+              (n) =>
+                  n.nota.isNotEmpty &&
+                  n.nombre != 'Nombre' &&
+                  n.nombre != 'Par',
+            )
             .toList(),
       );
     }).toList();
   }
 }
 
-// ── Providers ─────────────────────────────────────────────────────────────────
-
 final asistenciasProvider =
     FutureProvider.family<List<AsistenciaCursoEntity>, int>(
-        (ref, semestreId) async {
-  final usuario = ref.watch(currentUserProvider);
-  if (usuario == null) return [];
+  (ref, semestreId) async {
+    final usuario = ref.watch(currentUserProvider);
+    if (usuario == null) return [];
 
-  final ds = ref.watch(notasRemoteProvider);
-  return ds.fetchAsistencias(semestreId);
-});
+    final ds = ref.watch(notasRemoteProvider);
+    return ds.fetchAsistencias(semestreId);
+  },
+);
 
-final notasProvider =
-    FutureProvider.family<List<NotasCursoEntity>, int>(
-        (ref, semestreId) async {
-  final usuario = ref.watch(currentUserProvider);
-  if (usuario == null) return [];
+final notasProvider = FutureProvider.family<List<NotasCursoEntity>, int>(
+  (ref, semestreId) async {
+    final usuario = ref.watch(currentUserProvider);
+    if (usuario == null) return [];
 
-  final ds = ref.watch(notasRemoteProvider);
-  return ds.fetchNotas(semestreId);
-});
+    final ds = ref.watch(notasRemoteProvider);
+    return ds.fetchNotas(semestreId);
+  },
+);

@@ -154,8 +154,10 @@ class HorarioFiltro {
   final int semestreC; // nivel de la carrera (1-10)
   final int carrera;
   final int area;
+
   /// Nombre del día para filtro local ('Lunes', 'Martes', etc.). Vacío = todos.
   final String dia;
+
   /// ID de carrera para filtro local. -1 = todas.
   final int carreraId;
 

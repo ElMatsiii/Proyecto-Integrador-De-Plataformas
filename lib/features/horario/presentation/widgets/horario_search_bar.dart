@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 class HorarioSearchBar extends ConsumerStatefulWidget {
   final ValueChanged<String> onChanged;
+
   /// Controller externo opcional. Si se provee, este widget NO lo dispone.
   final TextEditingController? controller;
 

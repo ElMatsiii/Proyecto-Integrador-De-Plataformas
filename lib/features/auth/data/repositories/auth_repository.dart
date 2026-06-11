@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'package:cookie_jar/cookie_jar.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
@@ -5,6 +6,7 @@ import '../../../../core/constants/api_constants.dart';
 import '../../../../core/errors/app_error.dart';
 import '../../../../core/errors/result.dart';
 import '../../../../core/network/dio_client.dart';
+import '../../../../core/utils/json_read.dart';
 import '../../domain/entities/usuario_entity.dart';
 import '../../domain/repositories/i_auth_repository.dart';
 import '../datasources/auth_remote_datasource.dart';
@@ -16,7 +18,6 @@ final authRepositoryProvider = Provider<IAuthRepository>((ref) {
   );
 });
 
-/// Clave usada para guardar la cookie de sesión en SecureStorage.
 const _kCookieKey = 'phpsessid_cookie';
 
 class AuthRepository implements IAuthRepository {
@@ -27,14 +28,13 @@ class AuthRepository implements IAuthRepository {
 
   @override
   Future<Result<UsuarioEntity>> login(
-      String usuario, String password,) async {
+    String usuario,
+    String password,
+  ) async {
     final loginResult = await _remote.login(usuario, password);
     if (loginResult is Failure) return Failure(loginResult.errorOrNull!);
 
-    // Guardar usuario para saber quién está logueado
     await _storage.write(key: StorageKeys.usuario, value: usuario);
-
-    // Persistir la cookie de sesión para sobrevivir reinicios
     await _persistCookie();
 
     return getUsuarioActual();
@@ -70,14 +70,15 @@ class AuthRepository implements IAuthRepository {
     final usuario = await _storage.read(key: StorageKeys.usuario);
     if (usuario == null) return false;
 
-    // Intentar restaurar la cookie antes de verificar
-    await _restoreCookie();
+    final cookieRestaurada = await _restoreCookie();
+    if (!cookieRestaurada) {
+      await logout();
+      return false;
+    }
+
     return true;
   }
 
-  // ── Cookie persistence ────────────────────────────────────────────────────
-
-  /// Guarda la PHPSESSID en SecureStorage tras un login exitoso.
   Future<void> _persistCookie() async {
     try {
       final uri = Uri.parse(ApiConstants.baseUrl);
@@ -86,38 +87,73 @@ class AuthRepository implements IAuthRepository {
         (c) => c.name == 'PHPSESSID',
         orElse: () => Cookie('', ''),
       );
-      if (session.value.isNotEmpty) {
-        // Guardamos "nombre=valor" para reconstruirla luego
-        await _storage.write(
-          key: _kCookieKey,
-          value: '${session.name}=${session.value}',
-        );
-      }
+      if (session.value.isEmpty) return;
+
+      final payload = <String, dynamic>{
+        'name': session.name,
+        'value': session.value,
+        'domain': session.domain,
+        'path': session.path,
+        'expires': session.expires?.toIso8601String(),
+        'secure': session.secure,
+        'httpOnly': session.httpOnly,
+      };
+
+      await _storage.write(key: _kCookieKey, value: jsonEncode(payload));
     } catch (_) {
-      // No crítico: la sesión en memoria sigue funcionando
+      // La sesion en memoria sigue funcionando; se pedira login al reiniciar.
     }
   }
 
-  /// Restaura la cookie desde SecureStorage al CookieJar de Dio.
-  Future<void> _restoreCookie() async {
+  Future<bool> _restoreCookie() async {
     try {
       final raw = await _storage.read(key: _kCookieKey);
-      if (raw == null || !raw.contains('=')) return;
+      if (raw == null || raw.isEmpty) return false;
 
-      final parts = raw.split('=');
-      final name = parts[0];
-      final value = parts.sublist(1).join('=');
+      final cookie = _cookieFromStoredValue(raw);
+      if (cookie == null || cookie.value.isEmpty) return false;
 
-      final cookie = Cookie(name, value)
-        // Sin fecha de expiración → vive mientras la app esté en memoria
-        // El servidor decidirá si la sesión sigue válida
-        ..httpOnly = true
-        ..path = '/';
+      final now = DateTime.now().toUtc();
+      if (cookie.expires != null && cookie.expires!.toUtc().isBefore(now)) {
+        await _storage.delete(key: _kCookieKey);
+        return false;
+      }
 
       final uri = Uri.parse(ApiConstants.baseUrl);
       await DioClient.cookieJar.saveFromResponse(uri, [cookie]);
+      return true;
     } catch (_) {
-      // Si falla la restauración, el usuario tendrá que loguearse de nuevo
+      return false;
     }
+  }
+
+  Cookie? _cookieFromStoredValue(String raw) {
+    final decoded = jsonDecode(raw);
+    if (decoded is Map) {
+      final data = decoded.map((key, value) => MapEntry(key.toString(), value));
+      final name = readString(data['name']);
+      final value = readString(data['value']);
+      if (name.isEmpty || value.isEmpty) return null;
+
+      final expiresRaw = readString(data['expires']);
+      return Cookie(name, value)
+        ..domain = readString(
+          data['domain'],
+          fallback: Uri.parse(ApiConstants.baseUrl).host,
+        )
+        ..path = readString(data['path'], fallback: '/')
+        ..expires = expiresRaw.isEmpty ? null : DateTime.tryParse(expiresRaw)
+        ..secure = readBool(data['secure'], fallback: true)
+        ..httpOnly = readBool(data['httpOnly'], fallback: true);
+    }
+
+    // Compatibilidad con instalaciones que guardaron "PHPSESSID=valor".
+    if (!raw.contains('=')) return null;
+    final parts = raw.split('=');
+    return Cookie(parts.first, parts.sublist(1).join('='))
+      ..domain = Uri.parse(ApiConstants.baseUrl).host
+      ..path = '/'
+      ..secure = true
+      ..httpOnly = true;
   }
 }

@@ -42,27 +42,33 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       StatefulShellRoute.indexedStack(
         builder: (context, state, shell) => MainScaffold(shell: shell),
         branches: [
-          StatefulShellBranch(routes: [
-            GoRoute(
-              path: AppRoutes.horario,
-              name: AppRoutes.horarioName,
-              builder: (_, __) => const HorarioScreen(),
-            ),
-          ],),
-          StatefulShellBranch(routes: [
-            GoRoute(
-              path: AppRoutes.misCursos,
-              name: AppRoutes.misCursosName,
-              builder: (_, __) => const MisCursosScreen(),
-            ),
-          ],),
-          StatefulShellBranch(routes: [
-            GoRoute(
-              path: AppRoutes.asistencia,
-              name: AppRoutes.asistenciaName,
-              builder: (_, __) => const AsistenciaScreen(),
-            ),
-          ],),
+          StatefulShellBranch(
+            routes: [
+              GoRoute(
+                path: AppRoutes.horario,
+                name: AppRoutes.horarioName,
+                builder: (_, __) => const HorarioScreen(),
+              ),
+            ],
+          ),
+          StatefulShellBranch(
+            routes: [
+              GoRoute(
+                path: AppRoutes.misCursos,
+                name: AppRoutes.misCursosName,
+                builder: (_, __) => const MisCursosScreen(),
+              ),
+            ],
+          ),
+          StatefulShellBranch(
+            routes: [
+              GoRoute(
+                path: AppRoutes.asistencia,
+                name: AppRoutes.asistenciaName,
+                builder: (_, __) => const AsistenciaScreen(),
+              ),
+            ],
+          ),
         ],
       ),
       GoRoute(

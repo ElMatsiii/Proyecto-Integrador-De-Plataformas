@@ -65,15 +65,10 @@ class MisCursosScreen extends ConsumerWidget {
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (e, _) => Center(child: Text('Error al cargar: $e')),
         data: (masterData) {
-          final semestres = masterData.semestres;
-          if (semestres.isEmpty) {
+          final semestreActual = semestreActualOrNull(masterData);
+          if (semestreActual == null) {
             return const Center(child: Text('Sin semestres disponibles'));
           }
-
-          final semestreActual = semestres.firstWhere(
-            (s) => s.esActual,
-            orElse: () => semestres.first,
-          );
 
           final cursosAsync = ref.watch(
             misCursosProvider(
@@ -179,16 +174,13 @@ class _CursoCard extends ConsumerWidget {
     final colors = Theme.of(context).colorScheme;
     return Card(
       child: ListTile(
-        contentPadding:
-            const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
         leading: CircleAvatar(
           backgroundColor: curso.esProfesor
               ? colors.tertiaryContainer
               : colors.secondaryContainer,
           child: Icon(
-            curso.esProfesor
-                ? Icons.co_present_outlined
-                : Icons.person_outline,
+            curso.esProfesor ? Icons.co_present_outlined : Icons.person_outline,
             color: curso.esProfesor
                 ? colors.onTertiaryContainer
                 : colors.onSecondaryContainer,
@@ -326,9 +318,11 @@ class _CursoDetalleSheet extends ConsumerWidget {
                   error: (e, _) => Text('Error: $e'),
                   data: (asistencias) {
                     final match = asistencias
-                        .where((a) =>
-                            a.codigo == curso.codigo &&
-                            a.seccion == curso.seccion,)
+                        .where(
+                          (a) =>
+                              a.codigo == curso.codigo &&
+                              a.seccion == curso.seccion,
+                        )
                         .firstOrNull;
                     if (match == null) {
                       return const Padding(
@@ -348,9 +342,11 @@ class _CursoDetalleSheet extends ConsumerWidget {
                   error: (e, _) => Text('Error: $e'),
                   data: (notas) {
                     final match = notas
-                        .where((n) =>
-                            n.codigo == curso.codigo &&
-                            n.seccion == curso.seccion,)
+                        .where(
+                          (n) =>
+                              n.codigo == curso.codigo &&
+                              n.seccion == curso.seccion,
+                        )
                         .firstOrNull;
                     if (match == null || match.notas.isEmpty) {
                       return const Padding(

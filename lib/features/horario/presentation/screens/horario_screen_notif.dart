@@ -56,26 +56,26 @@ class _HorarioScreenState extends ConsumerState<HorarioScreen> {
     final master = ref.watch(masterProvider);
     final rolesCursos = ref.watch(idsCursosPorRolProvider);
     final esAyudante = rolesCursos.whenOrNull(
-          data: (r) =>
-              r.comoEstudiante.isNotEmpty && r.comoProfesor.isNotEmpty,
+          data: (r) => r.comoEstudiante.isNotEmpty && r.comoProfesor.isNotEmpty,
         ) ??
         false;
     final modo = ref.watch(modoVistaHorarioProvider);
     final search = ref.watch(horarioSearchProvider);
     final modoToggleVisible = esAyudante && search == ':';
 
-    ref..listen<AuthState>(authProvider, (previous, next) {
-      if (next is AuthAuthenticated && !_misRamosActivado) {
-        _activarMisRamos();
-      } else if (next is AuthUnauthenticated || next is AuthError) {
-        if (_misRamosActivado) _desactivarMisRamos();
-      }
-    })
+    ref
+      ..listen<AuthState>(authProvider, (previous, next) {
+        if (next is AuthAuthenticated && !_misRamosActivado) {
+          _activarMisRamos();
+        } else if (next is AuthUnauthenticated || next is AuthError) {
+          if (_misRamosActivado) _desactivarMisRamos();
+        }
+      })
 
-    // Programar notificaciones cuando el horario del usuario esté listo
-    ..listen(notificacionesProgramadasProvider, (_, next) {
-      // El provider se encarga de todo; solo escuchamos para activarlo
-    });
+      // Programar notificaciones cuando el horario del usuario esté listo
+      ..listen(notificacionesProgramadasProvider, (_, next) {
+        // El provider se encarga de todo; solo escuchamos para activarlo
+      });
 
     return Scaffold(
       appBar: AppBar(

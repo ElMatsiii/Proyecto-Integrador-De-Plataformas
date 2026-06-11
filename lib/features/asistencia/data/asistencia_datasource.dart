@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/errors/app_error.dart';
 import '../../../../core/errors/result.dart';
 import '../../../../core/network/dio_client.dart';
+import '../../../../core/utils/json_read.dart';
 
 // ── Entidades ─────────────────────────────────────────────────────────────────
 
@@ -21,8 +22,7 @@ class AsistenciaResumenEntity {
     required this.total,
   });
 
-  int get porcentaje =>
-      total == 0 ? 0 : ((presentes / total) * 100).round();
+  int get porcentaje => total == 0 ? 0 : ((presentes / total) * 100).round();
 }
 
 class AsistenciaClaseEntity {
@@ -37,11 +37,11 @@ class AsistenciaClaseEntity {
   });
 
   String get estadoTexto => switch (estado) {
-        1  => 'Presente',
-        0  => 'Ausente',
-        3  => 'Justificado',
+        1 => 'Presente',
+        0 => 'Ausente',
+        3 => 'Justificado',
         -1 => 'Atrasado',
-        _  => 'Sin registro',
+        _ => 'Sin registro',
       };
 }
 
@@ -49,8 +49,7 @@ class AsistenciaClaseEntity {
 
 /// Extrae solo los dígitos numéricos de un RUT.
 /// "9586127K" → "9586127"
-String _rutSoloDigitos(String rut) =>
-    rut.replaceAll(RegExp(r'[^0-9]'), '');
+String _rutSoloDigitos(String rut) => rut.replaceAll(RegExp(r'[^0-9]'), '');
 
 // ── Data source ───────────────────────────────────────────────────────────────
 
@@ -86,17 +85,17 @@ class AsistenciaEstudianteRemoteDataSource {
 
       for (final entry in data.entries) {
         final clase = entry.value;
-        if (clase is! Map) continue;
-        final claseMap = clase.cast<String, dynamic>();
+        final claseMap = asJsonMap(clase);
+        if (claseMap == null) continue;
 
-        final fecha  = (claseMap['fecha']  as String?) ?? '';
-        final bloque = (claseMap['bloque'] as String?) ?? '';
+        final fecha = readString(claseMap['fecha']);
+        final bloque = readString(claseMap['bloque']);
 
         final asistentesRaw = claseMap['asistentes'];
 
         // Caso 1: asistentes es un Map (caso normal)
         if (asistentesRaw is Map) {
-          final asistentes = asistentesRaw.cast<String, dynamic>();
+          final asistentes = asJsonMap(asistentesRaw) ?? const {};
 
           dynamic estudianteData = asistentes[rutDigitos];
 
@@ -115,41 +114,49 @@ class AsistenciaEstudianteRemoteDataSource {
                   estudianteData is Map ? estudianteData['estado'] : null,
                 );
 
-          clases.add(AsistenciaClaseEntity(
-            fecha:  fecha,
-            bloque: bloque,
-            estado: estado,
-          ),);
+          clases.add(
+            AsistenciaClaseEntity(
+              fecha: fecha,
+              bloque: bloque,
+              estado: estado,
+            ),
+          );
         }
         // Caso 2: asistentes es una Lista
         else if (asistentesRaw is List) {
           var encontrado = false;
           for (final item in asistentesRaw) {
-            if (item is! Map) continue;
+            final itemMap = asJsonMap(item);
+            if (itemMap == null) continue;
             final itemRut = _rutSoloDigitos(
-              (item['rut'] ?? item['pid'] ?? '').toString(),
+              readString(itemMap['rut'] ?? itemMap['pid']),
             );
             if (itemRut != rutDigitos) continue;
-            clases.add(AsistenciaClaseEntity(
-              fecha:  fecha,
-              bloque: bloque,
-              estado: _parseEstado(item['estado']),
-            ),);
+            clases.add(
+              AsistenciaClaseEntity(
+                fecha: fecha,
+                bloque: bloque,
+                estado: _parseEstado(itemMap['estado']),
+              ),
+            );
             encontrado = true;
             break;
           }
           if (!encontrado) {
-            clases.add(AsistenciaClaseEntity(
-              fecha:  fecha,
-              bloque: bloque,
-              estado: 0,
-            ),);
+            clases.add(
+              AsistenciaClaseEntity(
+                fecha: fecha,
+                bloque: bloque,
+                estado: 0,
+              ),
+            );
           }
         }
       }
 
-      clases.sort((a, b) =>
-          '${b.fecha}:${b.bloque}'.compareTo('${a.fecha}:${a.bloque}'),);
+      clases.sort(
+        (a, b) => '${b.fecha}:${b.bloque}'.compareTo('${a.fecha}:${a.bloque}'),
+      );
 
       return Success(clases);
     } on DioException catch (e) {
@@ -160,10 +167,7 @@ class AsistenciaEstudianteRemoteDataSource {
   }
 
   int _parseEstado(dynamic raw) {
-    if (raw is int)    return raw;
-    if (raw is double) return raw.toInt();
-    if (raw is String) return int.tryParse(raw) ?? 0;
-    return 0;
+    return readInt(raw);
   }
 }
 
@@ -171,9 +175,9 @@ class AsistenciaEstudianteRemoteDataSource {
 
 typedef AsistenciaArgs = ({int curso, int semestre, String rut});
 
-final asistenciaEstudianteProvider = FutureProvider.family<
-    List<AsistenciaClaseEntity>,
-    AsistenciaArgs>((ref, args) async {
+final asistenciaEstudianteProvider =
+    FutureProvider.family<List<AsistenciaClaseEntity>, AsistenciaArgs>(
+        (ref, args) async {
   final ds = ref.watch(asistenciaEstudianteRemoteProvider);
   final result = await ds.fetchAsistenciaEstudiante(
     args.curso,

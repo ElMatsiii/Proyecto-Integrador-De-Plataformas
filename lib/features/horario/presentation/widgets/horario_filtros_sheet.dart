@@ -85,7 +85,9 @@ class _HorarioFiltrosSheetState extends ConsumerState<HorarioFiltrosSheet> {
                   const SizedBox(width: 8),
                   Container(
                     padding: const EdgeInsets.symmetric(
-                        horizontal: 8, vertical: 2,),
+                      horizontal: 8,
+                      vertical: 2,
+                    ),
                     decoration: BoxDecoration(
                       color: colors.primary,
                       borderRadius: BorderRadius.circular(12),
@@ -121,13 +123,11 @@ class _HorarioFiltrosSheetState extends ConsumerState<HorarioFiltrosSheet> {
           // ── Contenido ────────────────────────────────────────────────────
           Expanded(
             child: master.when(
-              loading: () =>
-                  const Center(child: CircularProgressIndicator()),
+              loading: () => const Center(child: CircularProgressIndicator()),
               error: (e, _) => Center(child: Text('Error: $e')),
               data: (m) => ListView(
                 controller: controller,
-                padding:
-                    const EdgeInsets.fromLTRB(16, 12, 16, 40),
+                padding: const EdgeInsets.fromLTRB(16, 12, 16, 40),
                 children: [
                   // ── Sección: Académico ─────────────────────────────────
                   const _SeccionLabel(
@@ -144,8 +144,7 @@ class _HorarioFiltrosSheetState extends ConsumerState<HorarioFiltrosSheet> {
                         .map((s) => _ChipItem(value: s.id, label: s.nombre))
                         .toList(),
                     selected: filtro.semestre == -1 ? null : filtro.semestre,
-                    onSelected: (v) =>
-                        notifier.setSemestre(v ?? -1),
+                    onSelected: (v) => notifier.setSemestre(v ?? -1),
                   ),
                   const SizedBox(height: 16),
 
@@ -166,16 +165,18 @@ class _HorarioFiltrosSheetState extends ConsumerState<HorarioFiltrosSheet> {
                         : _BusquedaDropdown<int>(
                             hint: 'Buscar carrera...',
                             icon: Icons.school_outlined,
-                            value:
-                                filtro.carreraId == -1 ? null : filtro.carreraId,
+                            value: filtro.carreraId == -1
+                                ? null
+                                : filtro.carreraId,
                             items: carreras
-                                .map((c) => _DropItem(
-                                      value: c.id,
-                                      label: c.nombre,
-                                    ),)
+                                .map(
+                                  (c) => _DropItem(
+                                    value: c.id,
+                                    label: c.nombre,
+                                  ),
+                                )
                                 .toList(),
-                            onChanged: (v) =>
-                                notifier.setCarreraId(v ?? -1),
+                            onChanged: (v) => notifier.setCarreraId(v ?? -1),
                           ),
                   ),
                   const SizedBox(height: 16),
@@ -188,8 +189,9 @@ class _HorarioFiltrosSheetState extends ConsumerState<HorarioFiltrosSheet> {
                     icon: Icons.business_outlined,
                     value: filtro.area == -1 ? null : filtro.area,
                     items: m.areas
-                        .map((a) =>
-                            _DropItem(value: a.id, label: a.nombre),)
+                        .map(
+                          (a) => _DropItem(value: a.id, label: a.nombre),
+                        )
                         .toList(),
                     onChanged: (v) => notifier.setArea(v ?? -1),
                   ),
@@ -219,8 +221,7 @@ class _HorarioFiltrosSheetState extends ConsumerState<HorarioFiltrosSheet> {
                       10,
                       (i) => _ChipItem(value: i + 1, label: '${i + 1}°'),
                     ),
-                    selected:
-                        filtro.semestreC == -1 ? null : filtro.semestreC,
+                    selected: filtro.semestreC == -1 ? null : filtro.semestreC,
                     onSelected: (v) => notifier.setNivel(v ?? -1),
                   ),
                   const SizedBox(height: 24),
@@ -240,8 +241,9 @@ class _HorarioFiltrosSheetState extends ConsumerState<HorarioFiltrosSheet> {
                     icon: Icons.room_outlined,
                     value: filtro.sala == -1 ? null : filtro.sala,
                     items: m.salas
-                        .map((s) =>
-                            _DropItem(value: s.id, label: s.nombre),)
+                        .map(
+                          (s) => _DropItem(value: s.id, label: s.nombre),
+                        )
                         .toList(),
                     onChanged: (v) => notifier.setSala(v ?? -1),
                   ),
@@ -255,8 +257,9 @@ class _HorarioFiltrosSheetState extends ConsumerState<HorarioFiltrosSheet> {
                     icon: Icons.person_outline,
                     value: filtro.profesor == -1 ? null : filtro.profesor,
                     items: m.profesores
-                        .map((p) =>
-                            _DropItem(value: p.id, label: p.nombre),)
+                        .map(
+                          (p) => _DropItem(value: p.id, label: p.nombre),
+                        )
                         .toList(),
                     onChanged: (v) => notifier.setProfesor(v ?? -1),
                   ),
@@ -270,8 +273,9 @@ class _HorarioFiltrosSheetState extends ConsumerState<HorarioFiltrosSheet> {
                     icon: Icons.book_outlined,
                     value: filtro.curso == -1 ? null : filtro.curso,
                     items: m.cursos
-                        .map((c) =>
-                            _DropItem(value: c.id, label: c.nombre),)
+                        .map(
+                          (c) => _DropItem(value: c.id, label: c.nombre),
+                        )
                         .toList(),
                     onChanged: (v) => notifier.setCurso(v ?? -1),
                   ),
@@ -340,8 +344,7 @@ class _DiaChips extends StatelessWidget {
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 3),
             child: GestureDetector(
-              onTap: () =>
-                  onDiaSelected(seleccionado ? '' : dia),
+              onTap: () => onDiaSelected(seleccionado ? '' : dia),
               child: AnimatedContainer(
                 duration: const Duration(milliseconds: 200),
                 height: 40,
@@ -363,8 +366,7 @@ class _DiaChips extends StatelessWidget {
                   style: TextStyle(
                     fontSize: 12,
                     fontWeight: FontWeight.w600,
-                    color:
-                        seleccionado ? colors.onPrimary : colors.onSurface,
+                    color: seleccionado ? colors.onPrimary : colors.onSurface,
                   ),
                 ),
               ),
@@ -410,20 +412,19 @@ class _ChipsHorizontales<T> extends StatelessWidget {
               child: AnimatedContainer(
                 duration: const Duration(milliseconds: 180),
                 padding: const EdgeInsets.symmetric(
-                    horizontal: 16, vertical: 8,),
+                  horizontal: 16,
+                  vertical: 8,
+                ),
                 decoration: BoxDecoration(
                   color: sel ? colors.primary : colors.surfaceContainerHighest,
                   borderRadius: BorderRadius.circular(20),
-                  border: sel
-                      ? null
-                      : Border.all(color: colors.outlineVariant),
+                  border: sel ? null : Border.all(color: colors.outlineVariant),
                 ),
                 child: Text(
                   item.label,
                   style: TextStyle(
                     fontSize: 13,
-                    fontWeight:
-                        sel ? FontWeight.w700 : FontWeight.w500,
+                    fontWeight: sel ? FontWeight.w700 : FontWeight.w500,
                     color: sel ? colors.onPrimary : colors.onSurface,
                   ),
                 ),
@@ -464,7 +465,6 @@ class _BusquedaDropdown<T> extends StatefulWidget {
 }
 
 class _BusquedaDropdownState<T> extends State<_BusquedaDropdown<T>> {
-
   String get _labelActual {
     if (widget.value == null) return '';
     return widget.items
@@ -518,9 +518,8 @@ class _BusquedaDropdownState<T> extends State<_BusquedaDropdown<T>> {
                 tieneValor ? _labelActual : widget.hint,
                 style: TextStyle(
                   fontSize: 14,
-                  color: tieneValor
-                      ? colors.onSurface
-                      : colors.onSurfaceVariant,
+                  color:
+                      tieneValor ? colors.onSurface : colors.onSurfaceVariant,
                 ),
                 overflow: TextOverflow.ellipsis,
               ),
@@ -613,8 +612,7 @@ class _BuscadorModalState<T> extends State<_BuscadorModal<T>> {
                         suffixIcon: _query.isNotEmpty
                             ? IconButton(
                                 icon: const Icon(Icons.clear, size: 18),
-                                onPressed: () =>
-                                    setState(() => _query = ''),
+                                onPressed: () => setState(() => _query = ''),
                               )
                             : null,
                       ),
@@ -665,9 +663,8 @@ class _BuscadorModalState<T> extends State<_BuscadorModal<T>> {
                           title: Text(
                             item.label,
                             style: TextStyle(
-                              fontWeight: sel
-                                  ? FontWeight.w600
-                                  : FontWeight.normal,
+                              fontWeight:
+                                  sel ? FontWeight.w600 : FontWeight.normal,
                             ),
                           ),
                           trailing: sel

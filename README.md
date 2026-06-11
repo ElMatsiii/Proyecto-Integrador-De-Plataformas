@@ -50,11 +50,12 @@ flutter run
 > **Ambiente de desarrollo:** `https://losvilos.ucn.cl/hawaii`  
 > **Ambiente de producción:** `https://losvilos.ucn.cl/tongoy`
 
-Para cambiar el ambiente, edita `lib/core/constants/api_constants.dart`:
+El ambiente se define al compilar con `--dart-define`. Si no se especifica,
+la app usa el ambiente de desarrollo:
 
-```dart
-static const String baseUrl = 'https://losvilos.ucn.cl/hawaii'; // dev
-// static const String baseUrl = 'https://losvilos.ucn.cl/tongoy'; // prod
+```bash
+flutter run --dart-define=API_BASE_URL=https://losvilos.ucn.cl/hawaii
+flutter build apk --release --dart-define=API_BASE_URL=https://losvilos.ucn.cl/tongoy
 ```
 
 | Endpoint | Método | Auth | Descripción |

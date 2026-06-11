@@ -4,9 +4,9 @@ import '../../../../core/constants/api_constants.dart';
 import '../../../../core/errors/app_error.dart';
 import '../../../../core/errors/result.dart';
 import '../../../../core/network/dio_client.dart';
+import '../../../../core/utils/json_read.dart';
 import '../../domain/entities/horario_entity.dart';
 import '../models/horario_dto.dart';
-
 
 final horarioRemoteDataSourceProvider =
     Provider<HorarioRemoteDataSource>((ref) {
@@ -50,10 +50,7 @@ class HorarioRemoteDataSource {
       );
       final list = response.data ?? [];
       return Success(
-        list
-            .cast<Map<String, dynamic>>()
-            .map(HorarioItemDto.fromJson)
-            .toList(),
+        asJsonMapList(list).map(HorarioItemDto.fromJson).toList(),
       );
     } on DioException catch (e) {
       return Failure(dioToAppError(e));

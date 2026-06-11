@@ -1,6 +1,5 @@
+import '../../../../core/utils/json_read.dart';
 import '../../domain/entities/horario_entity.dart';
-
-// ── Master DTOs ──────────────────────────────────────────────────────────────
 
 class BloqueDto {
   final int id;
@@ -10,9 +9,9 @@ class BloqueDto {
   const BloqueDto({required this.id, required this.nombre, this.horario});
 
   factory BloqueDto.fromJson(Map<String, dynamic> json) => BloqueDto(
-        id: json['id'] as int,
-        nombre: json['nombre'] as String,
-        horario: json['horario'] as String?,
+        id: readInt(json['id']),
+        nombre: readString(json['nombre']),
+        horario: json['horario'] == null ? null : readString(json['horario']),
       );
 
   BloqueEntity toEntity() =>
@@ -27,9 +26,9 @@ class DiaDto {
   const DiaDto({required this.id, required this.nombre, required this.dotw});
 
   factory DiaDto.fromJson(Map<String, dynamic> json) => DiaDto(
-        id: json['id'] as int,
-        nombre: json['nombre'] as String,
-        dotw: json['dotw'] as int,
+        id: readInt(json['id']),
+        nombre: readString(json['nombre']),
+        dotw: readInt(json['dotw']),
       );
 
   DiaEntity toEntity() => DiaEntity(id: id, nombre: nombre, dotw: dotw);
@@ -41,17 +40,19 @@ class SalaDto {
   final String sector;
   final int? capacidad;
 
-  const SalaDto(
-      {required this.id,
-      required this.nombre,
-      required this.sector,
-      this.capacidad,});
+  const SalaDto({
+    required this.id,
+    required this.nombre,
+    required this.sector,
+    this.capacidad,
+  });
 
   factory SalaDto.fromJson(Map<String, dynamic> json) => SalaDto(
-        id: json['id'] as int,
-        nombre: json['nombre'] as String,
-        sector: json['sector'] as String? ?? '',
-        capacidad: json['capacidad'] as int?,
+        id: readInt(json['id']),
+        nombre: readString(json['nombre']),
+        sector: readString(json['sector']),
+        capacidad:
+            json['capacidad'] == null ? null : readInt(json['capacidad']),
       );
 
   SalaEntity toEntity() =>
@@ -65,8 +66,8 @@ class AreaDto {
   const AreaDto({required this.id, required this.nombre});
 
   factory AreaDto.fromJson(Map<String, dynamic> json) => AreaDto(
-        id: json['id'] as int,
-        nombre: json['nombre'] as String,
+        id: readInt(json['id']),
+        nombre: readString(json['nombre']),
       );
 
   AreaEntity toEntity() => AreaEntity(id: id, nombre: nombre);
@@ -77,30 +78,30 @@ class SemestreDto {
   final String nombre;
   final String primerLunes;
   final String ultimoDomingo;
-  final bool esActual; // ← agregar
+  final bool esActual;
 
   const SemestreDto({
     required this.id,
     required this.nombre,
     required this.primerLunes,
     required this.ultimoDomingo,
-    this.esActual = false, // ← agregar
+    this.esActual = false,
   });
 
   factory SemestreDto.fromJson(Map<String, dynamic> json) => SemestreDto(
-        id: json['id'] as int,
-        nombre: json['nombre'] as String,
-        primerLunes: json['primer_lunes'] as String,
-        ultimoDomingo: json['ultimo_domingo'] as String,
-        esActual: (json['es_actual'] as int? ?? 0) == 1, // ← agregar
+        id: readInt(json['id']),
+        nombre: readString(json['nombre']),
+        primerLunes: readString(json['primer_lunes']),
+        ultimoDomingo: readString(json['ultimo_domingo']),
+        esActual: readBool(json['es_actual']),
       );
 
   SemestreEntity toEntity() => SemestreEntity(
         id: id,
         nombre: nombre,
-        primerLunes: DateTime.parse(primerLunes),
-        ultimoDomingo: DateTime.parse(ultimoDomingo),
-        esActual: esActual, // ← agregar
+        primerLunes: DateTime.tryParse(primerLunes) ?? DateTime(1970),
+        ultimoDomingo: DateTime.tryParse(ultimoDomingo) ?? DateTime(1970),
+        esActual: esActual,
       );
 }
 
@@ -111,8 +112,8 @@ class ProfesorDto {
   const ProfesorDto({required this.id, required this.nombre});
 
   factory ProfesorDto.fromJson(Map<String, dynamic> json) => ProfesorDto(
-        id: json['id'] as int,
-        nombre: json['nombre'] as String,
+        id: readInt(json['id']),
+        nombre: readString(json['nombre']),
       );
 
   ProfesorEntity toEntity() => ProfesorEntity(id: id, nombre: nombre);
@@ -125,8 +126,8 @@ class CursoDto {
   const CursoDto({required this.id, required this.nombre});
 
   factory CursoDto.fromJson(Map<String, dynamic> json) => CursoDto(
-        id: json['id'] as int,
-        nombre: json['nombre'] as String,
+        id: readInt(json['id']),
+        nombre: readString(json['nombre']),
       );
 
   CursoEntity toEntity() => CursoEntity(id: id, nombre: nombre);
@@ -152,27 +153,17 @@ class MasterDto {
   });
 
   factory MasterDto.fromJson(Map<String, dynamic> json) => MasterDto(
-        areas: (json['areas'] as List? ?? [])
-            .map((e) => AreaDto.fromJson(e as Map<String, dynamic>))
+        areas: asJsonMapList(json['areas']).map(AreaDto.fromJson).toList(),
+        dias: asJsonMapList(json['dias']).map(DiaDto.fromJson).toList(),
+        bloques:
+            asJsonMapList(json['bloques']).map(BloqueDto.fromJson).toList(),
+        salas: asJsonMapList(json['salas']).map(SalaDto.fromJson).toList(),
+        cursos: asJsonMapList(json['cursos']).map(CursoDto.fromJson).toList(),
+        profesores: asJsonMapList(json['profesores'])
+            .map(ProfesorDto.fromJson)
             .toList(),
-        dias: (json['dias'] as List? ?? [])
-            .map((e) => DiaDto.fromJson(e as Map<String, dynamic>))
-            .toList(),
-        bloques: (json['bloques'] as List? ?? [])
-            .map((e) => BloqueDto.fromJson(e as Map<String, dynamic>))
-            .toList(),
-        salas: (json['salas'] as List? ?? [])
-            .map((e) => SalaDto.fromJson(e as Map<String, dynamic>))
-            .toList(),
-        cursos: (json['cursos'] as List? ?? [])
-            .map((e) => CursoDto.fromJson(e as Map<String, dynamic>))
-            .toList(),
-        profesores: (json['profesores'] as List? ?? [])
-            .map((e) => ProfesorDto.fromJson(e as Map<String, dynamic>))
-            .toList(),
-        semestres: (json['semestres'] as List? ?? [])
-            .map((e) => SemestreDto.fromJson(e as Map<String, dynamic>))
-            .toList(),
+        semestres:
+            asJsonMapList(json['semestres']).map(SemestreDto.fromJson).toList(),
       );
 
   MasterEntity toEntity() => MasterEntity(
@@ -186,21 +177,22 @@ class MasterDto {
       );
 }
 
-// ── Horario DTO ──────────────────────────────────────────────────────────────
-
 class CarreraEnHorarioDto {
   final int id;
   final String nombre;
   final int semestre;
 
-  const CarreraEnHorarioDto(
-      {required this.id, required this.nombre, required this.semestre,});
+  const CarreraEnHorarioDto({
+    required this.id,
+    required this.nombre,
+    required this.semestre,
+  });
 
   factory CarreraEnHorarioDto.fromJson(Map<String, dynamic> json) =>
       CarreraEnHorarioDto(
-        id: json['id'] as int,
-        nombre: json['nombre'] as String,
-        semestre: json['semestre'] as int,
+        id: readInt(json['id']),
+        nombre: readString(json['nombre']),
+        semestre: readInt(json['semestre']),
       );
 
   CarreraEnHorario toEntity() =>
@@ -235,19 +227,18 @@ class HorarioItemDto {
   });
 
   factory HorarioItemDto.fromJson(Map<String, dynamic> json) => HorarioItemDto(
-        id: json['id'] as int,
-        dia: json['dia'] as String? ?? '',
-        bloque: json['bloque'] as String? ?? '',
-        sala: json['sala'] as String? ?? '',
-        curso: json['curso'] as String? ?? '',
-        idCurso: json['idcurso'] as int? ?? 0,
-        nrc: json['nrc'] as String? ?? '',
-        profesor: json['profesor'] as String? ?? '',
-        area: json['area'] as String? ?? '',
-        comentario: json['comentario'] as String? ?? '',
-        carreras: (json['carreras'] as List? ?? [])
-            .map((e) =>
-                CarreraEnHorarioDto.fromJson(e as Map<String, dynamic>),)
+        id: readInt(json['id']),
+        dia: readString(json['dia']),
+        bloque: readString(json['bloque']),
+        sala: readString(json['sala']),
+        curso: readString(json['curso']),
+        idCurso: readInt(json['idcurso']),
+        nrc: readString(json['nrc']),
+        profesor: readString(json['profesor']),
+        area: readString(json['area']),
+        comentario: readString(json['comentario']),
+        carreras: asJsonMapList(json['carreras'])
+            .map(CarreraEnHorarioDto.fromJson)
             .toList(),
       );
 

@@ -51,8 +51,7 @@ final currentUserProvider = Provider<UsuarioEntity?>((ref) {
 
 // ── Notifier ──────────────────────────────────────────────────────────────────
 
-final authProvider =
-    StateNotifierProvider<AuthNotifier, AuthState>((ref) {
+final authProvider = StateNotifierProvider<AuthNotifier, AuthState>((ref) {
   final repo = ref.watch(authRepositoryProvider);
   return AuthNotifier(
     loginUseCase: LoginUseCase(repo),

@@ -4,9 +4,9 @@ import '../../../../core/constants/api_constants.dart';
 import '../../../../core/errors/app_error.dart';
 import '../../../../core/errors/result.dart';
 import '../../../../core/network/dio_client.dart';
+import '../../../../core/utils/json_read.dart';
 
-final authRemoteDataSourceProvider =
-    Provider<AuthRemoteDataSource>((ref) {
+final authRemoteDataSourceProvider = Provider<AuthRemoteDataSource>((ref) {
   return AuthRemoteDataSource(ref.watch(dioClientProvider));
 });
 
@@ -25,9 +25,11 @@ class AuthRemoteDataSource {
       final data = response.data;
       if (data == null) return const Failure(AuthError());
       if (data['status'] == 'ok') return const Success(null);
-      return Failure(AuthError(
-        (data['mensaje'] as String?) ?? 'Credenciales inválidas',
-      ),);
+      return Failure(
+        AuthError(
+          (data['mensaje'] as String?) ?? 'Credenciales inválidas',
+        ),
+      );
     } on DioException catch (e) {
       return Failure(dioToAppError(e));
     } catch (e) {
@@ -45,10 +47,13 @@ class AuthRemoteDataSource {
       if (list == null || list.isEmpty) {
         return const Failure(AuthError('Sin sesión activa'));
       }
-      final item = list.first as Map<String, dynamic>;
+      final item = asJsonMap(list.first);
+      if (item == null) {
+        return const Failure(AuthError('Respuesta de usuario inválida'));
+      }
       return Success(<String, String>{
-        'rut': (item['rut'] as String?) ?? '',
-        'nombre': (item['nombre'] as String?) ?? '',
+        'rut': readString(item['rut']),
+        'nombre': readString(item['nombre']),
       });
     } on DioException catch (e) {
       return Failure(dioToAppError(e));

@@ -20,6 +20,14 @@ final masterProvider = FutureProvider<MasterEntity>((ref) async {
   throw Exception((result as Failure<MasterEntity>).error.message);
 });
 
+SemestreEntity? semestreActualOrNull(MasterEntity master) {
+  if (master.semestres.isEmpty) return null;
+  return master.semestres.firstWhere(
+    (s) => s.esActual,
+    orElse: () => master.semestres.first,
+  );
+}
+
 // ── Filtro activo ────────────────────────────────────────────────────────────
 
 final horarioFiltroProvider =
@@ -45,8 +53,7 @@ class HorarioFiltroNotifier extends StateNotifier<HorarioFiltro> {
 
 // ── Horario completo del semestre ─────────────────────────────────────────────
 
-final horarioProvider =
-    FutureProvider<List<HorarioItemEntity>>((ref) async {
+final horarioProvider = FutureProvider<List<HorarioItemEntity>>((ref) async {
   var filtro = ref.watch(horarioFiltroProvider);
 
   // Observar currentUserProvider para que este provider se reconstruya
@@ -61,10 +68,8 @@ final horarioProvider =
 
   if (filtro.semestre == -1) {
     final master = await ref.watch(masterProvider.future);
-    final semestre = master.semestres.firstWhere(
-      (s) => s.esActual,
-      orElse: () => master.semestres.first,
-    );
+    final semestre = semestreActualOrNull(master);
+    if (semestre == null) return [];
     filtro = filtro.copyWith(semestre: semestre.id);
   }
 
@@ -83,7 +88,8 @@ final horarioProvider =
 
   if (result is! Success<List<HorarioItemEntity>>) {
     throw Exception(
-        (result as Failure<List<HorarioItemEntity>>).error.message,);
+      (result as Failure<List<HorarioItemEntity>>).error.message,
+    );
   }
 
   return result.data;
@@ -108,10 +114,10 @@ final idsCursosPorRolProvider = FutureProvider<RolesCursos>((ref) async {
   }
 
   final master = await ref.watch(masterProvider.future);
-  final semestre = master.semestres.firstWhere(
-    (s) => s.esActual,
-    orElse: () => master.semestres.first,
-  );
+  final semestre = semestreActualOrNull(master);
+  if (semestre == null) {
+    return (comoEstudiante: <int>{}, comoProfesor: <int>{});
+  }
 
   final repo = ref.watch(misCursosRepositoryProvider);
   final result = await repo.getCursos(currentUser.rut, semestre.id);
@@ -191,9 +197,11 @@ final horarioFiltradoProvider =
           return horario.whenData(
             (items) => _aplicarFiltrosLocales(
               items
-                  .where((i) =>
-                      roles.comoProfesor.contains(i.idCurso) &&
-                      i.profesor.toLowerCase().contains(nombreUsuario),)
+                  .where(
+                    (i) =>
+                        roles.comoProfesor.contains(i.idCurso) &&
+                        i.profesor.toLowerCase().contains(nombreUsuario),
+                  )
                   .toList(),
               filtro,
               '',
@@ -273,10 +281,8 @@ final carreraUsuarioProvider = FutureProvider<int?>((ref) async {
   if (currentUser == null) return null;
 
   final master = await ref.watch(masterProvider.future);
-  final semestre = master.semestres.firstWhere(
-    (s) => s.esActual,
-    orElse: () => master.semestres.first,
-  );
+  final semestre = semestreActualOrNull(master);
+  if (semestre == null) return null;
 
   final dio = ref.watch(dioClientProvider);
   try {

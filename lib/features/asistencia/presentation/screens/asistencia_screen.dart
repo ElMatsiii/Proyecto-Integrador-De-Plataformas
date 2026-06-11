@@ -77,17 +77,18 @@ class _AsistenciaScreenState extends ConsumerState<AsistenciaScreen> {
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (e, _) => Center(child: Text('Error: $e')),
         data: (masterData) {
-          final semestreActual = masterData.semestres.firstWhere(
-            (s) => s.esActual,
-            orElse: () => masterData.semestres.first,
-          );
+          final semestreActual = semestreActualOrNull(masterData);
+          if (semestreActual == null) {
+            return const Center(
+              child: Text('No hay semestres disponibles'),
+            );
+          }
 
           if (_cursoSeleccionado == null) {
             return _ListaCursos(
               usuario: usuario.rut,
               semestreId: semestreActual.id,
-              onCursoTap: (curso) =>
-                  setState(() => _cursoSeleccionado = curso),
+              onCursoTap: (curso) => setState(() => _cursoSeleccionado = curso),
             );
           }
 
@@ -170,11 +171,13 @@ class _ListaCursos extends ConsumerWidget {
                 ),
           ),
         ),
-        ...cursos.map((c) => _CursoAsistenciaTile(
-              curso: c,
-              asistencia: map['${c.codigo}|${c.seccion}'],
-              onTap: () => onCursoTap(c),
-            ),),
+        ...cursos.map(
+          (c) => _CursoAsistenciaTile(
+            curso: c,
+            asistencia: map['${c.codigo}|${c.seccion}'],
+            onTap: () => onCursoTap(c),
+          ),
+        ),
       ],
     );
   }
@@ -341,11 +344,13 @@ class _DetalleAsistencia extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final asistenciasAsync = ref.watch(asistenciasProvider(semestreId));
     final detalleAsync = ref.watch(
-      asistenciaEstudianteProvider((
-        curso: curso.id,
-        semestre: semestreId,
-        rut: rutEstudiante,
-      ),),
+      asistenciaEstudianteProvider(
+        (
+          curso: curso.id,
+          semestre: semestreId,
+          rut: rutEstudiante,
+        ),
+      ),
     );
 
     return asistenciasAsync.when(
@@ -353,8 +358,9 @@ class _DetalleAsistencia extends ConsumerWidget {
       error: (e, _) => Center(child: Text('Error resumen: $e')),
       data: (asistencias) {
         final resumen = asistencias
-            .where((a) =>
-                a.codigo == curso.codigo && a.seccion == curso.seccion,)
+            .where(
+              (a) => a.codigo == curso.codigo && a.seccion == curso.seccion,
+            )
             .firstOrNull;
 
         return detalleAsync.when(
@@ -365,7 +371,8 @@ class _DetalleAsistencia extends ConsumerWidget {
                 _ResumenCard(resumen: resumen, clases: const []),
               Expanded(
                 child: Center(
-                    child: Text('No se pudo cargar el detalle: $e'),),
+                  child: Text('No se pudo cargar el detalle: $e'),
+                ),
               ),
             ],
           ),
@@ -486,9 +493,7 @@ class _FechaCard extends StatelessWidget {
     try {
       final dt = DateTime.parse(fecha);
       final hoy = DateTime.now();
-      return dt.year == hoy.year &&
-          dt.month == hoy.month &&
-          dt.day == hoy.day;
+      return dt.year == hoy.year && dt.month == hoy.month && dt.day == hoy.day;
     } catch (_) {
       return false;
     }
@@ -499,8 +504,7 @@ class _FechaCard extends StatelessWidget {
     final colors = Theme.of(context).colorScheme;
     final hayAusente = bloques.any((b) => b.estado == 0);
     final hayAtrasado = bloques.any((b) => b.estado == -1);
-    final todosPresentes =
-        bloques.every((b) => b.estado == 1 || b.estado == 3);
+    final todosPresentes = bloques.every((b) => b.estado == 1 || b.estado == 3);
 
     final borderColor = hayAusente
         ? colors.error
@@ -765,8 +769,7 @@ class _ResumenCard extends StatelessWidget {
                       child: LinearProgressIndicator(
                         value: pct / 100,
                         minHeight: 8,
-                        backgroundColor:
-                            colors.surface.withValues(alpha: 0.5),
+                        backgroundColor: colors.surface.withValues(alpha: 0.5),
                         color: pct >= 75
                             ? colors.primary
                             : pct >= 50

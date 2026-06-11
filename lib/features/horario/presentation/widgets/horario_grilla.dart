@@ -29,9 +29,8 @@ class _HorarioGrillaState extends State<HorarioGrilla> {
   @override
   void initState() {
     super.initState();
-    _diasConClases = _dias
-        .where((d) => widget.items.any((i) => i.dia == d))
-        .toList();
+    _diasConClases =
+        _dias.where((d) => widget.items.any((i) => i.dia == d)).toList();
 
     final hoy = _diaActual();
     final indexHoy = _diasConClases.indexOf(hoy);
@@ -81,8 +80,7 @@ class _HorarioGrillaState extends State<HorarioGrilla> {
             onPageChanged: (index) => setState(() => _paginaActual = index),
             itemBuilder: (_, index) {
               final dia = _diasConClases[index];
-              final itemsDia =
-                  widget.items.where((i) => i.dia == dia).toList();
+              final itemsDia = widget.items.where((i) => i.dia == dia).toList();
               final bloquesDelDia = widget.master.bloques
                   .where((b) => itemsDia.any((i) => i.bloque == b.nombre))
                   .toList();
@@ -136,7 +134,8 @@ class _DiaIndicador extends StatelessWidget {
                 onTap: () => onDiaTap(index),
                 child: AnimatedContainer(
                   duration: const Duration(milliseconds: 200),
-                  margin: const EdgeInsets.symmetric(horizontal: 4, vertical: 6),
+                  margin:
+                      const EdgeInsets.symmetric(horizontal: 4, vertical: 6),
                   padding: const EdgeInsets.symmetric(horizontal: 16),
                   decoration: BoxDecoration(
                     color: seleccionado
@@ -266,9 +265,7 @@ class _BloqueRow extends StatelessWidget {
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: items
-                    .map((item) => _ClaseCard(item: item))
-                    .toList(),
+                children: items.map((item) => _ClaseCard(item: item)).toList(),
               ),
             ),
           ],

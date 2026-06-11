@@ -42,8 +42,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
 
     final authState = ref.watch(authProvider);
     final isLoading = authState is AuthLoading;
-    final errorMsg =
-        authState is AuthError ? (authState).message : null;
+    final errorMsg = authState is AuthError ? (authState).message : null;
 
     return Scaffold(
       body: SafeArea(
@@ -72,8 +71,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                         labelText: 'Correo o RUT',
                         prefixIcon: Icon(Icons.person_outline),
                       ),
-                      validator: (v) =>
-                          v == null || v.trim().isEmpty ? 'Ingresa tu usuario' : null,
+                      validator: (v) => v == null || v.trim().isEmpty
+                          ? 'Ingresa tu usuario'
+                          : null,
                     ),
                     const SizedBox(height: 12),
 
@@ -87,15 +87,19 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                         labelText: 'Contraseña',
                         prefixIcon: const Icon(Icons.lock_outline),
                         suffixIcon: IconButton(
-                          icon: Icon(_obscurePassword
-                              ? Icons.visibility_outlined
-                              : Icons.visibility_off_outlined,),
+                          icon: Icon(
+                            _obscurePassword
+                                ? Icons.visibility_outlined
+                                : Icons.visibility_off_outlined,
+                          ),
                           onPressed: () => setState(
-                              () => _obscurePassword = !_obscurePassword,),
+                            () => _obscurePassword = !_obscurePassword,
+                          ),
                         ),
                       ),
-                      validator: (v) =>
-                          v == null || v.isEmpty ? 'Ingresa tu contraseña' : null,
+                      validator: (v) => v == null || v.isEmpty
+                          ? 'Ingresa tu contraseña'
+                          : null,
                     ),
                     const SizedBox(height: 8),
 
@@ -115,7 +119,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                               height: 20,
                               width: 20,
                               child: CircularProgressIndicator(
-                                  strokeWidth: 2, color: Colors.white,),
+                                strokeWidth: 2,
+                                color: Colors.white,
+                              ),
                             )
                           : const Text('Ingresar'),
                     ),

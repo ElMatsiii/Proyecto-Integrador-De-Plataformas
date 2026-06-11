@@ -117,7 +117,7 @@ void main() {
     test('retorna Failure(ServerError) con statusCode 500', () async {
       when(() => mockRepo.getHorario(filtroBase))
           .thenAnswer((_) async =>
-              const Failure(ServerError('Internal Server Error', statusCode: 500)));
+              const Failure(ServerError('Internal Server Error', statusCode: 500)),);
 
       final result = await getHorario(filtroBase);
 

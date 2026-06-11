@@ -36,7 +36,8 @@ class HorarioRepository implements IHorarioRepository {
 
   @override
   Future<Result<List<HorarioItemEntity>>> getHorario(
-      HorarioFiltro filtro,) async {
+    HorarioFiltro filtro,
+  ) async {
     final result = await _remote.fetchHorario(filtro);
     return result.when(
       success: (dtos) => Success(dtos.map((d) => d.toEntity()).toList()),
@@ -88,9 +89,7 @@ class HorarioRepository implements IHorarioRepository {
 
   Map<String, dynamic> _masterDtoToJson(MasterDto dto) {
     return {
-      'areas': dto.areas
-          .map((e) => {'id': e.id, 'nombre': e.nombre})
-          .toList(),
+      'areas': dto.areas.map((e) => {'id': e.id, 'nombre': e.nombre}).toList(),
       'dias': dto.dias
           .map((e) => {'id': e.id, 'nombre': e.nombre, 'dotw': e.dotw})
           .toList(),
@@ -98,27 +97,29 @@ class HorarioRepository implements IHorarioRepository {
           .map((e) => {'id': e.id, 'nombre': e.nombre, 'horario': e.horario})
           .toList(),
       'salas': dto.salas
-          .map((e) => {
-                'id': e.id,
-                'nombre': e.nombre,
-                'sector': e.sector,
-                'capacidad': e.capacidad,
-              },)
+          .map(
+            (e) => {
+              'id': e.id,
+              'nombre': e.nombre,
+              'sector': e.sector,
+              'capacidad': e.capacidad,
+            },
+          )
           .toList(),
-      'cursos': dto.cursos
-          .map((e) => {'id': e.id, 'nombre': e.nombre})
-          .toList(),
-      'profesores': dto.profesores
-          .map((e) => {'id': e.id, 'nombre': e.nombre})
-          .toList(),
+      'cursos':
+          dto.cursos.map((e) => {'id': e.id, 'nombre': e.nombre}).toList(),
+      'profesores':
+          dto.profesores.map((e) => {'id': e.id, 'nombre': e.nombre}).toList(),
       'semestres': dto.semestres
-          .map((e) => {
-                'id': e.id,
-                'nombre': e.nombre,
-                'primer_lunes': e.primerLunes,
-                'ultimo_domingo': e.ultimoDomingo,
-                'es_actual': e.esActual ? 1 : 0,
-              },)
+          .map(
+            (e) => {
+              'id': e.id,
+              'nombre': e.nombre,
+              'primer_lunes': e.primerLunes,
+              'ultimo_domingo': e.ultimoDomingo,
+              'es_actual': e.esActual ? 1 : 0,
+            },
+          )
           .toList(),
     };
   }
