@@ -3,6 +3,7 @@ import '../../../../core/constants/api_constants.dart';
 import '../../../../core/errors/result.dart';
 import '../../../../core/network/dio_client.dart';
 import '../../../../core/services/notificaciones_service.dart';
+import '../../../../core/utils/json_read.dart';
 import '../../../auth/presentation/providers/auth_provider_notif.dart';
 import '../../../mis_cursos/data/mis_cursos_datasource.dart';
 import '../../../mis_cursos/domain/entities/curso_usuario_entity.dart';
@@ -292,7 +293,8 @@ final carreraUsuarioProvider = FutureProvider<int?>((ref) async {
     );
     final data = response.data;
     if (data == null) return null;
-    return data['id'] as int?;
+    final id = readInt(data['id'], fallback: -1);
+    return id == -1 ? null : id;
   } catch (_) {
     return null;
   }

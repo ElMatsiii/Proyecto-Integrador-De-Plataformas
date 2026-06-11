@@ -139,5 +139,6 @@ lib/
 - La cookie de sesión (PHPSESSID) es gestionada por `dio_cookie_manager`.
 - Las credenciales se guardan con `flutter_secure_storage` (cifrado nativo).
 - El escáner QR valida dominio **y** ruta del endpoint — solo acepta URLs de asistencia conocidas.
+- Antes de producción, validar en backend los controles de autorización y QR descritos en `docs/security-backend-checklist.md`.
 - No se registran datos personales en logs en builds de producción.
 - En Android, `usesCleartextTraffic="false"` fuerza HTTPS.
