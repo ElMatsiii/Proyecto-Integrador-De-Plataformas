@@ -1,13 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'core/network/dio_client.dart';
 import 'core/router/app_router.dart';
 import 'core/services/notificaciones_service.dart';
+import 'shared/settings/accessibility_settings.dart';
 import 'shared/theme/app_theme.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await DioClient.init();
+  final prefs = await SharedPreferences.getInstance();
 
   // Inicializar el servicio de notificaciones locales
   final notifService = NotificacionesService();
@@ -18,6 +21,7 @@ void main() async {
       overrides: [
         // Inyectamos la instancia ya inicializada
         notificacionesServiceProvider.overrideWithValue(notifService),
+        sharedPreferencesProvider.overrideWithValue(prefs),
       ],
       child: const TongoyApp(),
     ),
@@ -30,13 +34,24 @@ class TongoyApp extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final router = ref.watch(appRouterProvider);
+    final settings = ref.watch(accessibilitySettingsProvider);
     return MaterialApp.router(
       title: 'Tongoy UCN',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.light,
       darkTheme: AppTheme.dark,
-      themeMode: ThemeMode.system,
+      themeMode: settings.themeMode,
       routerConfig: router,
+      builder: (context, child) {
+        final systemScale = MediaQuery.textScalerOf(context).scale(1);
+        final scale = (systemScale * settings.fontScale).clamp(0.9, 1.6);
+        return MediaQuery(
+          data: MediaQuery.of(context).copyWith(
+            textScaler: TextScaler.linear(scale.toDouble()),
+          ),
+          child: child ?? const SizedBox.shrink(),
+        );
+      },
     );
   }
 }

@@ -5,6 +5,8 @@ import 'package:intl/intl.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import '../../../../shared/settings/accessibility_settings.dart';
+import '../../../../shared/theme/app_colors.dart';
 import '../../../auth/presentation/providers/auth_provider_notif.dart';
 import '../../../horario/presentation/providers/horario_provider_notif.dart';
 import '../../../mis_cursos/data/mis_cursos_datasource.dart';
@@ -68,6 +70,13 @@ class _AsistenciaScreenState extends ConsumerState<AsistenciaScreen> {
                 onPressed: () => setState(() => _cursoSeleccionado = null),
               )
             : null,
+        actions: [
+          IconButton(
+            tooltip: 'Accesibilidad',
+            icon: const Icon(Icons.accessibility_new_outlined),
+            onPressed: () => _abrirAccesibilidad(context),
+          ),
+        ],
       ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () => _abrirEscaner(context),
@@ -109,6 +118,124 @@ class _AsistenciaScreenState extends ConsumerState<AsistenciaScreen> {
       isScrollControlled: true,
       useSafeArea: true,
       builder: (_) => const _QrScannerSheet(),
+    );
+  }
+
+  void _abrirAccesibilidad(BuildContext context) {
+    showModalBottomSheet<void>(
+      context: context,
+      showDragHandle: true,
+      builder: (_) => const _AccessibilitySettingsSheet(),
+    );
+  }
+}
+
+AttendanceStateColors _attendanceColors(BuildContext context, WidgetRef ref) {
+  final colorBlindMode =
+      ref.watch(accessibilitySettingsProvider).colorBlindMode;
+  return AttendanceStateColors.resolve(
+    brightness: Theme.of(context).brightness,
+    colorBlindMode: colorBlindMode,
+  );
+}
+
+Color _stateContainer(Color color, Color surface, [double alpha = 0.16]) {
+  return Color.alphaBlend(color.withValues(alpha: alpha), surface);
+}
+
+Color _readableStateText(Color color, Brightness brightness) {
+  if (brightness == Brightness.light && color.computeLuminance() > 0.35) {
+    return const Color(0xFF3D2A00);
+  }
+  return color;
+}
+
+class _AccessibilitySettingsSheet extends ConsumerWidget {
+  const _AccessibilitySettingsSheet();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final settings = ref.watch(accessibilitySettingsProvider);
+    final notifier = ref.read(accessibilitySettingsProvider.notifier);
+
+    return SafeArea(
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Accesibilidad',
+              style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                    fontWeight: FontWeight.w700,
+                  ),
+            ),
+            const SizedBox(height: 18),
+            Text(
+              'Tema',
+              style: Theme.of(context).textTheme.labelLarge,
+            ),
+            const SizedBox(height: 8),
+            SizedBox(
+              width: double.infinity,
+              child: SegmentedButton<ThemeMode>(
+                segments: const [
+                  ButtonSegment(
+                    value: ThemeMode.system,
+                    icon: Icon(Icons.brightness_auto_outlined),
+                    label: Text('Sistema'),
+                  ),
+                  ButtonSegment(
+                    value: ThemeMode.light,
+                    icon: Icon(Icons.light_mode_outlined),
+                    label: Text('Claro'),
+                  ),
+                  ButtonSegment(
+                    value: ThemeMode.dark,
+                    icon: Icon(Icons.dark_mode_outlined),
+                    label: Text('Oscuro'),
+                  ),
+                ],
+                selected: {settings.themeMode},
+                onSelectionChanged: (value) =>
+                    notifier.setThemeMode(value.first),
+              ),
+            ),
+            const SizedBox(height: 18),
+            SwitchListTile(
+              contentPadding: EdgeInsets.zero,
+              secondary: const Icon(Icons.visibility_outlined),
+              title: const Text('Modo daltonico'),
+              subtitle: const Text('Usa colores Okabe-Ito en asistencia'),
+              value: settings.colorBlindMode,
+              onChanged: notifier.setColorBlindMode,
+            ),
+            const SizedBox(height: 8),
+            Row(
+              children: [
+                const Icon(Icons.format_size_outlined),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: Text(
+                    'Tamano de fuente',
+                    style: Theme.of(context).textTheme.titleSmall,
+                  ),
+                ),
+                Text('${(settings.fontScale * 100).round()}%'),
+              ],
+            ),
+            Slider(
+              min: 0.9,
+              max: 1.6,
+              divisions: 7,
+              label: '${(settings.fontScale * 100).round()}%',
+              value: settings.fontScale,
+              onChanged: notifier.setFontScale,
+            ),
+          ],
+        ),
+      ),
     );
   }
 }
@@ -186,7 +313,7 @@ class _ListaCursos extends ConsumerWidget {
 
 // ── Tile de curso ─────────────────────────────────────────────────────────────
 
-class _CursoAsistenciaTile extends StatelessWidget {
+class _CursoAsistenciaTile extends ConsumerWidget {
   final CursoUsuarioEntity curso;
   final AsistenciaCursoEntity? asistencia;
   final VoidCallback onTap;
@@ -198,18 +325,14 @@ class _CursoAsistenciaTile extends StatelessWidget {
   });
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final colors = Theme.of(context).colorScheme;
+    final stateColors = _attendanceColors(context, ref);
     final pct = asistencia?.porcentaje ?? 0;
     final tieneData = asistencia != null;
 
-    final barColor = !tieneData
-        ? colors.outlineVariant
-        : pct >= 75
-            ? colors.primary
-            : pct >= 50
-                ? colors.secondary
-                : colors.error;
+    final barColor =
+        !tieneData ? colors.outlineVariant : stateColors.forPorcentaje(pct);
 
     return Card(
       child: InkWell(
@@ -270,14 +393,26 @@ class _CursoAsistenciaTile extends StatelessWidget {
                         children: [
                           _MiniChip(
                             label: '${asistencia!.presentes} pres.',
-                            color: colors.primaryContainer,
-                            textColor: colors.onPrimaryContainer,
+                            color: _stateContainer(
+                              stateColors.presente,
+                              colors.surface,
+                            ),
+                            textColor: _readableStateText(
+                              stateColors.presente,
+                              Theme.of(context).brightness,
+                            ),
                           ),
                           const SizedBox(width: 6),
                           _MiniChip(
                             label: '${asistencia!.ausentes} aus.',
-                            color: colors.errorContainer,
-                            textColor: colors.onErrorContainer,
+                            color: _stateContainer(
+                              stateColors.ausente,
+                              colors.surface,
+                            ),
+                            textColor: _readableStateText(
+                              stateColors.ausente,
+                              Theme.of(context).brightness,
+                            ),
                           ),
                           const SizedBox(width: 6),
                           _MiniChip(
@@ -477,7 +612,7 @@ class _VistaDetalle extends StatelessWidget {
 
 // ── Tarjeta por fecha ─────────────────────────────────────────────────────────
 
-class _FechaCard extends StatelessWidget {
+class _FechaCard extends ConsumerWidget {
   final String fecha;
   final String fechaFormateada;
   final String diaSemana;
@@ -501,18 +636,19 @@ class _FechaCard extends StatelessWidget {
   }
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final colors = Theme.of(context).colorScheme;
+    final stateColors = _attendanceColors(context, ref);
     final hayAusente = bloques.any((b) => b.estado == 0);
     final hayAtrasado = bloques.any((b) => b.estado == -1);
     final todosPresentes = bloques.every((b) => b.estado == 1 || b.estado == 3);
 
     final borderColor = hayAusente
-        ? colors.error
+        ? stateColors.ausente
         : hayAtrasado
-            ? colors.secondary
+            ? stateColors.atrasado
             : todosPresentes
-                ? colors.primary
+                ? stateColors.presente
                 : colors.outlineVariant;
 
     final estadoLabel = hayAusente
@@ -638,33 +774,35 @@ class _FechaCard extends StatelessWidget {
 
 // ── Pill de un bloque ─────────────────────────────────────────────────────────
 
-class _BloquePill extends StatelessWidget {
+class _BloquePill extends ConsumerWidget {
   final AsistenciaClaseEntity bloque;
   const _BloquePill({required this.bloque});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final colors = Theme.of(context).colorScheme;
+    final stateColors = _attendanceColors(context, ref);
+    final brightness = Theme.of(context).brightness;
 
     final (bg, fg, icon) = switch (bloque.estado) {
       1 => (
-          colors.primaryContainer,
-          colors.onPrimaryContainer,
+          _stateContainer(stateColors.presente, colors.surface),
+          _readableStateText(stateColors.presente, brightness),
           Icons.check_circle_outline,
         ),
       0 => (
-          colors.errorContainer,
-          colors.onErrorContainer,
+          _stateContainer(stateColors.ausente, colors.surface),
+          _readableStateText(stateColors.ausente, brightness),
           Icons.cancel_outlined,
         ),
       3 => (
-          colors.tertiaryContainer,
-          colors.onTertiaryContainer,
+          _stateContainer(stateColors.justificado, colors.surface),
+          _readableStateText(stateColors.justificado, brightness),
           Icons.verified_outlined,
         ),
       -1 => (
-          colors.secondaryContainer,
-          colors.onSecondaryContainer,
+          _stateContainer(stateColors.atrasado, colors.surface),
+          _readableStateText(stateColors.atrasado, brightness),
           Icons.schedule_outlined,
         ),
       _ => (
@@ -714,15 +852,16 @@ class _BloquePill extends StatelessWidget {
 
 // ── Tarjeta de resumen ────────────────────────────────────────────────────────
 
-class _ResumenCard extends StatelessWidget {
+class _ResumenCard extends ConsumerWidget {
   final AsistenciaCursoEntity? resumen;
   final List<AsistenciaClaseEntity> clases;
 
   const _ResumenCard({required this.resumen, required this.clases});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final colors = Theme.of(context).colorScheme;
+    final stateColors = _attendanceColors(context, ref);
     final pct = resumen?.porcentaje ?? 0;
     final presentes =
         resumen?.presentes ?? clases.where((c) => c.estado == 1).length;
@@ -732,11 +871,8 @@ class _ResumenCard extends StatelessWidget {
     final justificados = clases.where((c) => c.estado == 3).length;
     final atrasados = clases.where((c) => c.estado == -1).length;
 
-    final cardColor = pct >= 75
-        ? colors.primaryContainer
-        : pct >= 50
-            ? colors.secondaryContainer
-            : colors.errorContainer;
+    final progressColor = stateColors.forPorcentaje(pct);
+    final cardColor = _stateContainer(progressColor, colors.surface, 0.18);
 
     return Container(
       margin: const EdgeInsets.fromLTRB(16, 16, 16, 12),
@@ -771,11 +907,7 @@ class _ResumenCard extends StatelessWidget {
                         value: pct / 100,
                         minHeight: 8,
                         backgroundColor: colors.surface.withValues(alpha: 0.5),
-                        color: pct >= 75
-                            ? colors.primary
-                            : pct >= 50
-                                ? colors.secondary
-                                : colors.error,
+                        color: progressColor,
                       ),
                     ),
                     const SizedBox(height: 4),
