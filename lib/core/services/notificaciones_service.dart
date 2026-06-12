@@ -116,21 +116,7 @@ class NotificacionesService {
         '📚 Clase en $_minutosAntes minutos',
         '$nombreCorto · Bloque ${item.bloque} · ${item.sala}',
         fechaNotif,
-        const NotificationDetails(
-          android: AndroidNotificationDetails(
-            _channelId,
-            _channelName,
-            channelDescription: _channelDesc,
-            importance: Importance.high,
-            priority: Priority.high,
-            icon: '@mipmap/ic_launcher',
-          ),
-          iOS: DarwinNotificationDetails(
-            presentAlert: true,
-            presentBadge: true,
-            presentSound: true,
-          ),
-        ),
+        _detalles(),
         androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
         uiLocalNotificationDateInterpretation:
             UILocalNotificationDateInterpretation.absoluteTime,
@@ -141,7 +127,97 @@ class NotificacionesService {
   /// Cancela todas las notificaciones (al hacer logout).
   Future<void> cancelarTodas() => _plugin.cancelAll();
 
+  // ── Diagnóstico / pruebas ───────────────────────────────────────────────────
+  //
+  // Estos métodos son utilidades para verificar que las notificaciones
+  // funcionan. No se usan en el flujo normal de la app.
+
+  /// Verifica (y opcionalmente solicita) los permisos necesarios en Android.
+  /// En iOS los permisos se piden en init(), aquí se asume concedido.
+  ///
+  /// - notisActivas: el usuario permite notificaciones (Android 13+).
+  /// - exactasOk: el sistema permite alarmas exactas (necesario para
+  ///   zonedSchedule con exactAllowWhileIdle). Si esto es false en Android 12+,
+  ///   programarSemana falla silenciosamente.
+  Future<({bool notisActivas, bool exactasOk})> verificarPermisos({
+    bool solicitarSiFaltan = true,
+  }) async {
+    final android = _plugin.resolvePlatformSpecificImplementation<
+        AndroidFlutterLocalNotificationsPlugin>();
+
+    // No es Android (ej: iOS): init() ya pidió permisos.
+    if (android == null) {
+      return (notisActivas: true, exactasOk: true);
+    }
+
+    var notis = await android.areNotificationsEnabled() ?? false;
+    var exactas = await android.canScheduleExactNotifications() ?? false;
+
+    if (solicitarSiFaltan && !notis) {
+      await android.requestNotificationsPermission();
+      notis = await android.areNotificationsEnabled() ?? false;
+    }
+    if (solicitarSiFaltan && !exactas) {
+      await android.requestExactAlarmsPermission();
+      exactas = await android.canScheduleExactNotifications() ?? false;
+    }
+
+    return (notisActivas: notis, exactasOk: exactas);
+  }
+
+  /// Dispara una notificación inmediata. Verifica de una vez que el plugin
+  /// esté inicializado, que el canal exista, que el ícono cargue y que haya
+  /// permiso. Es la prueba más rápida de "¿funciona algo?".
+  Future<void> mostrarPrueba() async {
+    await _plugin.show(
+      9999,
+      '🔔 Notificación de prueba',
+      'Si ves esto, el plugin y el canal funcionan correctamente',
+      _detalles(),
+    );
+  }
+
+  /// Programa una notificación a [segundos] en el futuro usando el mismo
+  /// camino (zonedSchedule + alarmas exactas + timezone) que las
+  /// notificaciones reales de clase. Si esta llega, el pipeline completo sirve.
+  Future<void> programarPrueba({int segundos = 10}) async {
+    final cuando = tz.TZDateTime.now(tz.local).add(Duration(seconds: segundos));
+    await _plugin.zonedSchedule(
+      9998,
+      '⏰ Prueba programada',
+      'Programada hace $segundos segundos (mismo camino que una clase)',
+      cuando,
+      _detalles(),
+      androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
+      uiLocalNotificationDateInterpretation:
+          UILocalNotificationDateInterpretation.absoluteTime,
+    );
+  }
+
+  /// Lista las notificaciones en cola (programadas y aún no disparadas).
+  /// Sirve para confirmar qué agendó realmente programarSemana.
+  Future<List<PendingNotificationRequest>> obtenerPendientes() {
+    return _plugin.pendingNotificationRequests();
+  }
+
   // ── Helpers ───────────────────────────────────────────────────────────────
+
+  /// Detalles compartidos por todas las notificaciones (canal, ícono, etc.).
+  NotificationDetails _detalles() => const NotificationDetails(
+        android: AndroidNotificationDetails(
+          _channelId,
+          _channelName,
+          channelDescription: _channelDesc,
+          importance: Importance.high,
+          priority: Priority.high,
+          icon: '@mipmap/ic_launcher',
+        ),
+        iOS: DarwinNotificationDetails(
+          presentAlert: true,
+          presentBadge: true,
+          presentSound: true,
+        ),
+      );
 
   /// Retorna el lunes de la semana a la que pertenece [fecha].
   tz.TZDateTime _lunesDe(tz.TZDateTime fecha) {
