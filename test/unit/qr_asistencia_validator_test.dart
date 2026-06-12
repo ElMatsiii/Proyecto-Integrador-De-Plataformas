@@ -18,6 +18,15 @@ void main() {
       );
     });
 
+    test('acepta el endpoint real de QR de hawaii', () {
+      expect(
+        validator.esValido(
+          uri('https://losvilos.ucn.cl/hawaii/asist.php?c=BDNPUU'),
+        ),
+        isTrue,
+      );
+    });
+
     test('acepta el endpoint de producción (tongoy)', () {
       expect(
         validator.esValido(

@@ -12,6 +12,7 @@ class QrAsistenciaValidator {
 
   /// Únicas rutas de asistencia válidas (hawaii = dev, tongoy = prod).
   static const rutasPermitidas = {
+    '/hawaii/asist.php',
     '/hawaii/asist_marcar6.php',
     '/tongoy/asist_marcar6.php',
   };
