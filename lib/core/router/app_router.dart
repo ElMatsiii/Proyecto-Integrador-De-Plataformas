@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import '../../features/asistencia/presentation/screens/asistencia_screen.dart';
 import '../../features/auth/presentation/providers/auth_provider_notif.dart';
 import '../../features/auth/presentation/screens/login_screen.dart';
+import '../../features/debug/presentation/screens/notificaciones_debug_screen.dart';
 import '../../features/horario/presentation/screens/horario_screen_notif.dart';
 import '../../features/mis_cursos/presentation/screens/mis_cursos_screen.dart';
 import '../../shared/widgets/main_scaffold.dart';
@@ -76,6 +77,13 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         name: AppRoutes.loginName,
         builder: (_, __) => const LoginScreen(),
       ),
+      // Ruta de diagnóstico — solo se registra en builds de debug.
+      if (kDebugMode)
+        GoRoute(
+          path: AppRoutes.debugNotificaciones,
+          name: AppRoutes.debugNotificacionesName,
+          builder: (_, __) => const NotificacionesDebugScreen(),
+        ),
     ],
   );
 });
@@ -97,4 +105,6 @@ abstract class AppRoutes {
   static const asistenciaName = 'asistencia';
   static const login = '/login';
   static const loginName = 'login';
+  static const debugNotificaciones = '/debug-notificaciones';
+  static const debugNotificacionesName = 'debug-notificaciones';
 }

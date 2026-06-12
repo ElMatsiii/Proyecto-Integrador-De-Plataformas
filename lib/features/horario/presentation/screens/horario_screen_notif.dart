@@ -1,5 +1,8 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
+import '../../../../core/router/app_router.dart';
 import '../../../auth/presentation/providers/auth_provider_notif.dart';
 import '../../domain/entities/horario_entity.dart';
 import '../providers/horario_provider_notif.dart';
@@ -81,6 +84,14 @@ class _HorarioScreenState extends ConsumerState<HorarioScreen> {
       appBar: AppBar(
         title: const Text('Horario'),
         actions: [
+          // Botón de diagnóstico de notificaciones — solo en builds de debug.
+          if (kDebugMode)
+            IconButton(
+              icon: const Icon(Icons.bug_report_outlined),
+              tooltip: 'Debug notificaciones',
+              onPressed: () =>
+                  context.pushNamed(AppRoutes.debugNotificacionesName),
+            ),
           IconButton(
             icon: const Icon(Icons.refresh),
             tooltip: 'Actualizar',
