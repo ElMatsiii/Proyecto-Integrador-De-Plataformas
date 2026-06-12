@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import '../../domain/entities/horario_entity.dart';
 
@@ -22,7 +23,7 @@ class _HorarioGrillaState extends State<HorarioGrilla> {
     'Sabado',
   ];
 
-  late final List<String> _diasConClases;
+  late List<String> _diasConClases;
   late final PageController _pageController;
   int _paginaActual = 0;
 
@@ -36,6 +37,44 @@ class _HorarioGrillaState extends State<HorarioGrilla> {
     final indexHoy = _diasConClases.indexOf(hoy);
     _paginaActual = indexHoy >= 0 ? indexHoy : 0;
     _pageController = PageController(initialPage: _paginaActual);
+  }
+
+  @override
+  void didUpdateWidget(covariant HorarioGrilla oldWidget) {
+    super.didUpdateWidget(oldWidget);
+
+    // Si los items cambiaron (ej: el provider terminó de cargar el horario
+    // completo, o se activó/desactivó el filtro "mis ramos"), recalculamos
+    // qué días deben mostrarse en la grilla.
+    if (oldWidget.items != widget.items) {
+      final nuevosDias =
+          _dias.where((d) => widget.items.any((i) => i.dia == d)).toList();
+
+      if (!listEquals(nuevosDias, _diasConClases)) {
+        final diaActualSeleccionado = _diasConClases.isNotEmpty &&
+                _paginaActual < _diasConClases.length
+            ? _diasConClases[_paginaActual]
+            : null;
+
+        setState(() {
+          _diasConClases = nuevosDias;
+
+          // Intentar mantener al usuario en el mismo día si sigue existiendo,
+          // si no, ajustar al rango válido.
+          if (diaActualSeleccionado != null &&
+              _diasConClases.contains(diaActualSeleccionado)) {
+            _paginaActual = _diasConClases.indexOf(diaActualSeleccionado);
+          } else if (_paginaActual >= _diasConClases.length) {
+            _paginaActual =
+                _diasConClases.isEmpty ? 0 : _diasConClases.length - 1;
+          }
+        });
+
+        if (_pageController.hasClients && _diasConClases.isNotEmpty) {
+          _pageController.jumpToPage(_paginaActual);
+        }
+      }
+    }
   }
 
   @override
