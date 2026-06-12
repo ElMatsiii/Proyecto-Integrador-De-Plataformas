@@ -11,6 +11,7 @@ import '../../../mis_cursos/data/mis_cursos_datasource.dart';
 import '../../../mis_cursos/data/notas_datasource.dart';
 import '../../../mis_cursos/domain/entities/curso_usuario_entity.dart';
 import '../../data/asistencia_datasource.dart';
+import '../../domain/qr_asistencia_validator.dart';
 
 // ── Pantalla principal ────────────────────────────────────────────────────────
 
@@ -877,26 +878,14 @@ class _QrScannerSheetState extends State<_QrScannerSheet> {
   final MobileScannerController _controller = MobileScannerController();
   bool _detectado = false;
 
+  /// Validación de las URLs de QR (dominio + ruta). Lógica pura y testeada en
+  /// test/unit/qr_asistencia_validator_test.dart.
+  static const _validator = QrAsistenciaValidator();
+
   @override
   void dispose() {
     _controller.dispose();
     super.dispose();
-  }
-
-  /// Dominio autorizado para QR de asistencia.
-  static const _dominioPermitido = 'losvilos.ucn.cl';
-
-  /// Solo estos endpoints de asistencia son válidos.
-  /// Cualquier otra URL del dominio (incluso otras rutas) es rechazada.
-  static const _rutasPermitidas = {
-    '/hawaii/asist_marcar6.php',
-    '/tongoy/asist_marcar6.php',
-  };
-
-  bool _esQrValido(Uri uri) {
-    if (uri.scheme != 'https') return false;
-    if (uri.host != _dominioPermitido) return false;
-    return _rutasPermitidas.contains(uri.path);
   }
 
   Future<void> _onDetect(BarcodeCapture capture) async {
@@ -908,20 +897,36 @@ class _QrScannerSheetState extends State<_QrScannerSheet> {
     _detectado = true;
     await _controller.stop();
     if (!mounted) return;
+
+    // Capturamos el messenger antes del pop para no usar el context tras los
+    // await (evita el lint use_build_context_synchronously y que el aviso se
+    // pierda cuando el bottom sheet ya se cerró).
+    final messenger = ScaffoldMessenger.of(context);
     Navigator.of(context).pop();
+
     final uri = Uri.tryParse(raw);
-    if (uri != null && _esQrValido(uri)) {
-      if (await canLaunchUrl(uri)) {
-        await launchUrl(uri, mode: LaunchMode.inAppBrowserView);
-      }
-    } else {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
+    if (uri == null || !_validator.esValido(uri)) {
+      messenger.showSnackBar(
+        const SnackBar(
+          content: Text('QR no reconocido o endpoint no autorizado'),
+        ),
+      );
+      return;
+    }
+
+    try {
+      final abierto = await launchUrl(uri, mode: LaunchMode.inAppBrowserView);
+      if (!abierto) {
+        messenger.showSnackBar(
           const SnackBar(
-            content: Text('QR no reconocido o endpoint no autorizado'),
+            content: Text('No se pudo abrir el enlace de asistencia'),
           ),
         );
       }
+    } catch (e) {
+      messenger.showSnackBar(
+        SnackBar(content: Text('No se pudo abrir el enlace: $e')),
+      );
     }
   }
 

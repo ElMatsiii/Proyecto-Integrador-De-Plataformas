@@ -43,14 +43,14 @@
 
         <!-- flutter_local_notifications: dispara las notificaciones programadas
              (zonedSchedule). Sin este receiver la alarma de AlarmManager suena
-             pero nadie la atrapa, así que la notificación nunca aparece aunque
+             pero nadie la atrapa, asi que la notificacion nunca aparece aunque
              figure en pendientes. -->
         <receiver
             android:exported="false"
             android:name="com.dexterous.flutterlocalnotifications.ScheduledNotificationReceiver" />
 
         <!-- flutter_local_notifications: re-registra las notificaciones
-             programadas después de reiniciar el teléfono. -->
+             programadas despues de reiniciar el telefono. -->
         <receiver
             android:exported="false"
             android:name="com.dexterous.flutterlocalnotifications.ScheduledNotificationBootReceiver">
@@ -63,10 +63,16 @@
         </receiver>
     </application>
 
-    <!-- Requerido por flutter_secure_storage en Android -->
     <queries>
+        <!-- Requerido por flutter_secure_storage en Android -->
         <intent>
             <action android:name="android.intent.action.VIEW" />
+        </intent>
+        <!-- Requerido por url_launcher en Android 11+ para abrir URLs https
+             (sin esto, canLaunchUrl/launchUrl no resuelve el navegador). -->
+        <intent>
+            <action android:name="android.intent.action.VIEW" />
+            <data android:scheme="https" />
         </intent>
     </queries>
 </manifest>
