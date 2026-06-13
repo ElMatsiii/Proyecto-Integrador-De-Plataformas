@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../core/router/app_router.dart';
+import '../../../../shared/widgets/accessibility_settings_button.dart';
 import '../../../auth/presentation/providers/auth_provider_notif.dart';
 import '../../../horario/presentation/providers/horario_provider_notif.dart';
 import '../../data/mis_cursos_datasource.dart';
@@ -54,6 +55,7 @@ class MisCursosScreen extends ConsumerWidget {
           ],
         ),
         actions: [
+          const AccessibilitySettingsButton(),
           IconButton(
             icon: const Icon(Icons.logout),
             tooltip: 'Cerrar sesión',

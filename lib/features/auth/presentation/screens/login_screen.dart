@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../core/router/app_router.dart';
+import '../../../../shared/widgets/accessibility_settings_button.dart';
 import '../providers/auth_provider_notif.dart';
 
 class LoginScreen extends ConsumerStatefulWidget {
@@ -46,97 +47,107 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
 
     return Scaffold(
       body: SafeArea(
-        child: Center(
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.all(24),
-            child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 400),
-              child: Form(
-                key: _formKey,
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    // Logo / encabezado
-                    const _LoginHeader(),
-                    const SizedBox(height: 40),
+        child: Stack(
+          children: [
+            const Positioned(
+              top: 4,
+              right: 4,
+              child: AccessibilitySettingsButton(),
+            ),
+            Center(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.all(24),
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 400),
+                  child: Form(
+                    key: _formKey,
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        // Logo / encabezado
+                        const _LoginHeader(),
+                        const SizedBox(height: 40),
 
-                    // Campo usuario
-                    TextFormField(
-                      controller: _usuarioCtrl,
-                      keyboardType: TextInputType.emailAddress,
-                      textInputAction: TextInputAction.next,
-                      autocorrect: false,
-                      decoration: const InputDecoration(
-                        labelText: 'Correo o RUT',
-                        prefixIcon: Icon(Icons.person_outline),
-                      ),
-                      validator: (v) => v == null || v.trim().isEmpty
-                          ? 'Ingresa tu usuario'
-                          : null,
-                    ),
-                    const SizedBox(height: 12),
-
-                    // Campo contraseña
-                    TextFormField(
-                      controller: _passwordCtrl,
-                      obscureText: _obscurePassword,
-                      textInputAction: TextInputAction.done,
-                      onFieldSubmitted: (_) => _login(),
-                      decoration: InputDecoration(
-                        labelText: 'Contraseña',
-                        prefixIcon: const Icon(Icons.lock_outline),
-                        suffixIcon: IconButton(
-                          icon: Icon(
-                            _obscurePassword
-                                ? Icons.visibility_outlined
-                                : Icons.visibility_off_outlined,
+                        // Campo usuario
+                        TextFormField(
+                          controller: _usuarioCtrl,
+                          keyboardType: TextInputType.emailAddress,
+                          textInputAction: TextInputAction.next,
+                          autocorrect: false,
+                          decoration: const InputDecoration(
+                            labelText: 'Correo o RUT',
+                            prefixIcon: Icon(Icons.person_outline),
                           ),
-                          onPressed: () => setState(
-                            () => _obscurePassword = !_obscurePassword,
-                          ),
+                          validator: (v) => v == null || v.trim().isEmpty
+                              ? 'Ingresa tu usuario'
+                              : null,
                         ),
-                      ),
-                      validator: (v) => v == null || v.isEmpty
-                          ? 'Ingresa tu contraseña'
-                          : null,
-                    ),
-                    const SizedBox(height: 8),
+                        const SizedBox(height: 12),
 
-                    // Mensaje de error
-                    if (errorMsg != null) ...[
-                      const SizedBox(height: 8),
-                      _ErrorBanner(mensaje: errorMsg),
-                    ],
-
-                    const SizedBox(height: 24),
-
-                    // Botón ingresar
-                    FilledButton(
-                      onPressed: isLoading ? null : _login,
-                      child: isLoading
-                          ? const SizedBox(
-                              height: 20,
-                              width: 20,
-                              child: CircularProgressIndicator(
-                                strokeWidth: 2,
-                                color: Colors.white,
+                        // Campo contraseña
+                        TextFormField(
+                          controller: _passwordCtrl,
+                          obscureText: _obscurePassword,
+                          textInputAction: TextInputAction.done,
+                          onFieldSubmitted: (_) => _login(),
+                          decoration: InputDecoration(
+                            labelText: 'Contraseña',
+                            prefixIcon: const Icon(Icons.lock_outline),
+                            suffixIcon: IconButton(
+                              icon: Icon(
+                                _obscurePassword
+                                    ? Icons.visibility_outlined
+                                    : Icons.visibility_off_outlined,
                               ),
-                            )
-                          : const Text('Ingresar'),
-                    ),
-                    const SizedBox(height: 12),
+                              onPressed: () => setState(
+                                () => _obscurePassword = !_obscurePassword,
+                              ),
+                            ),
+                          ),
+                          validator: (v) => v == null || v.isEmpty
+                              ? 'Ingresa tu contraseña'
+                              : null,
+                        ),
+                        const SizedBox(height: 8),
 
-                    // Continuar sin cuenta
-                    OutlinedButton(
-                      onPressed: () => context.goNamed(AppRoutes.horarioName),
-                      child: const Text('Ver horario sin iniciar sesión'),
+                        // Mensaje de error
+                        if (errorMsg != null) ...[
+                          const SizedBox(height: 8),
+                          _ErrorBanner(mensaje: errorMsg),
+                        ],
+
+                        const SizedBox(height: 24),
+
+                        // Botón ingresar
+                        FilledButton(
+                          onPressed: isLoading ? null : _login,
+                          child: isLoading
+                              ? const SizedBox(
+                                  height: 20,
+                                  width: 20,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                    color: Colors.white,
+                                  ),
+                                )
+                              : const Text('Ingresar'),
+                        ),
+                        const SizedBox(height: 12),
+
+                        // Continuar sin cuenta
+                        OutlinedButton(
+                          onPressed: () =>
+                              context.goNamed(AppRoutes.horarioName),
+                          child: const Text('Ver horario sin iniciar sesión'),
+                        ),
+                      ],
                     ),
-                  ],
+                  ),
                 ),
               ),
             ),
-          ),
+          ],
         ),
       ),
     );

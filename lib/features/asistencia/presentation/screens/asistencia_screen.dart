@@ -7,6 +7,7 @@ import 'package:url_launcher/url_launcher.dart';
 
 import '../../../../shared/settings/accessibility_settings.dart';
 import '../../../../shared/theme/app_colors.dart';
+import '../../../../shared/widgets/accessibility_settings_button.dart';
 import '../../../auth/presentation/providers/auth_provider_notif.dart';
 import '../../../horario/presentation/providers/horario_provider_notif.dart';
 import '../../../mis_cursos/data/mis_cursos_datasource.dart';
@@ -70,12 +71,8 @@ class _AsistenciaScreenState extends ConsumerState<AsistenciaScreen> {
                 onPressed: () => setState(() => _cursoSeleccionado = null),
               )
             : null,
-        actions: [
-          IconButton(
-            tooltip: 'Accesibilidad',
-            icon: const Icon(Icons.accessibility_new_outlined),
-            onPressed: () => _abrirAccesibilidad(context),
-          ),
+        actions: const [
+          AccessibilitySettingsButton(),
         ],
       ),
       floatingActionButton: FloatingActionButton.extended(
@@ -120,14 +117,6 @@ class _AsistenciaScreenState extends ConsumerState<AsistenciaScreen> {
       builder: (_) => const _QrScannerSheet(),
     );
   }
-
-  void _abrirAccesibilidad(BuildContext context) {
-    showModalBottomSheet<void>(
-      context: context,
-      showDragHandle: true,
-      builder: (_) => const _AccessibilitySettingsSheet(),
-    );
-  }
 }
 
 AttendanceStateColors _attendanceColors(BuildContext context, WidgetRef ref) {
@@ -148,96 +137,6 @@ Color _readableStateText(Color color, Brightness brightness) {
     return const Color(0xFF3D2A00);
   }
   return color;
-}
-
-class _AccessibilitySettingsSheet extends ConsumerWidget {
-  const _AccessibilitySettingsSheet();
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final settings = ref.watch(accessibilitySettingsProvider);
-    final notifier = ref.read(accessibilitySettingsProvider.notifier);
-
-    return SafeArea(
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'Accesibilidad',
-              style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                    fontWeight: FontWeight.w700,
-                  ),
-            ),
-            const SizedBox(height: 18),
-            Text(
-              'Tema',
-              style: Theme.of(context).textTheme.labelLarge,
-            ),
-            const SizedBox(height: 8),
-            SizedBox(
-              width: double.infinity,
-              child: SegmentedButton<ThemeMode>(
-                segments: const [
-                  ButtonSegment(
-                    value: ThemeMode.system,
-                    icon: Icon(Icons.brightness_auto_outlined),
-                    label: Text('Sistema'),
-                  ),
-                  ButtonSegment(
-                    value: ThemeMode.light,
-                    icon: Icon(Icons.light_mode_outlined),
-                    label: Text('Claro'),
-                  ),
-                  ButtonSegment(
-                    value: ThemeMode.dark,
-                    icon: Icon(Icons.dark_mode_outlined),
-                    label: Text('Oscuro'),
-                  ),
-                ],
-                selected: {settings.themeMode},
-                onSelectionChanged: (value) =>
-                    notifier.setThemeMode(value.first),
-              ),
-            ),
-            const SizedBox(height: 18),
-            SwitchListTile(
-              contentPadding: EdgeInsets.zero,
-              secondary: const Icon(Icons.visibility_outlined),
-              title: const Text('Modo daltonico'),
-              subtitle: const Text('Usa colores Okabe-Ito en asistencia'),
-              value: settings.colorBlindMode,
-              onChanged: notifier.setColorBlindMode,
-            ),
-            const SizedBox(height: 8),
-            Row(
-              children: [
-                const Icon(Icons.format_size_outlined),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: Text(
-                    'Tamano de fuente',
-                    style: Theme.of(context).textTheme.titleSmall,
-                  ),
-                ),
-                Text('${(settings.fontScale * 100).round()}%'),
-              ],
-            ),
-            Slider(
-              min: 0.9,
-              max: 1.6,
-              divisions: 7,
-              label: '${(settings.fontScale * 100).round()}%',
-              value: settings.fontScale,
-              onChanged: notifier.setFontScale,
-            ),
-          ],
-        ),
-      ),
-    );
-  }
 }
 
 // ── Lista de cursos con resumen de asistencia ─────────────────────────────────
@@ -1009,15 +908,46 @@ class _QrScannerSheet extends StatefulWidget {
 class _QrScannerSheetState extends State<_QrScannerSheet> {
   final MobileScannerController _controller = MobileScannerController();
   bool _detectado = false;
+  double _zoomScale = 0;
 
   /// Validación de las URLs de QR (dominio + ruta). Lógica pura y testeada en
   /// test/unit/qr_asistencia_validator_test.dart.
   static const _validator = QrAsistenciaValidator();
 
   @override
+  void initState() {
+    super.initState();
+    _controller.addListener(_syncZoomScale);
+  }
+
+  @override
   void dispose() {
-    _controller.dispose();
+    _controller
+      ..removeListener(_syncZoomScale)
+      ..dispose();
     super.dispose();
+  }
+
+  void _syncZoomScale() {
+    if (!mounted || !_controller.value.isInitialized) return;
+    final zoomScale = _controller.value.zoomScale.clamp(0.0, 1.0);
+    if ((zoomScale - _zoomScale).abs() < 0.01) return;
+    setState(() => _zoomScale = zoomScale);
+  }
+
+  Future<void> _setZoomScale(double value) async {
+    final nextValue = value.clamp(0.0, 1.0);
+    setState(() => _zoomScale = nextValue);
+    await _controller.setZoomScale(nextValue);
+  }
+
+  void _previewZoomScale(double value) {
+    setState(() => _zoomScale = value.clamp(0.0, 1.0));
+  }
+
+  Future<void> _resetZoom() async {
+    setState(() => _zoomScale = 0);
+    await _controller.resetZoomScale();
   }
 
   Future<void> _onDetect(BarcodeCapture capture) async {
@@ -1088,9 +1018,28 @@ class _QrScannerSheetState extends State<_QrScannerSheet> {
             child: ClipRRect(
               borderRadius:
                   const BorderRadius.vertical(bottom: Radius.circular(16)),
-              child: MobileScanner(
-                controller: _controller,
-                onDetect: _onDetect,
+              child: Stack(
+                children: [
+                  Positioned.fill(
+                    child: MobileScanner(
+                      controller: _controller,
+                      onDetect: _onDetect,
+                    ),
+                  ),
+                  Positioned(
+                    left: 16,
+                    right: 16,
+                    bottom: 16,
+                    child: _ScannerZoomControls(
+                      zoomScale: _zoomScale,
+                      onChanged: _previewZoomScale,
+                      onChangeEnd: _setZoomScale,
+                      onZoomOut: () => _setZoomScale(_zoomScale - 0.15),
+                      onZoomIn: () => _setZoomScale(_zoomScale + 0.15),
+                      onReset: _resetZoom,
+                    ),
+                  ),
+                ],
               ),
             ),
           ),
@@ -1105,6 +1054,83 @@ class _QrScannerSheetState extends State<_QrScannerSheet> {
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _ScannerZoomControls extends StatelessWidget {
+  const _ScannerZoomControls({
+    required this.zoomScale,
+    required this.onChanged,
+    required this.onChangeEnd,
+    required this.onZoomOut,
+    required this.onZoomIn,
+    required this.onReset,
+  });
+
+  final double zoomScale;
+  final ValueChanged<double> onChanged;
+  final ValueChanged<double> onChangeEnd;
+  final VoidCallback onZoomOut;
+  final VoidCallback onZoomIn;
+  final VoidCallback onReset;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
+    final textTheme = Theme.of(context).textTheme;
+    final percent = (zoomScale * 100).round();
+
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: colors.surface.withValues(alpha: 0.92),
+        borderRadius: BorderRadius.circular(8),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.16),
+            blurRadius: 16,
+            offset: const Offset(0, 6),
+          ),
+        ],
+      ),
+      child: SizedBox(
+        height: 64,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 8),
+          child: Row(
+            children: [
+              IconButton(
+                tooltip: 'Alejar',
+                onPressed: zoomScale <= 0 ? null : onZoomOut,
+                icon: const Icon(Icons.remove),
+              ),
+              Expanded(
+                child: Slider(
+                  value: zoomScale,
+                  onChanged: onChanged,
+                  onChangeEnd: onChangeEnd,
+                ),
+              ),
+              IconButton(
+                tooltip: 'Acercar',
+                onPressed: zoomScale >= 1 ? null : onZoomIn,
+                icon: const Icon(Icons.add),
+              ),
+              const SizedBox(width: 4),
+              TextButton(
+                onPressed: zoomScale <= 0 ? null : onReset,
+                child: Text(
+                  '$percent%',
+                  style: textTheme.labelLarge?.copyWith(
+                    color: colors.primary,
+                    fontFeatures: const [FontFeature.tabularFigures()],
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }
