@@ -55,8 +55,6 @@ class _DetalleAsistencia extends ConsumerWidget {
   }
 }
 
-
-
 class _VistaDetalle extends StatelessWidget {
   final AsistenciaCursoEntity? resumen;
   final List<AsistenciaClaseEntity> clases;
@@ -145,8 +143,6 @@ class _VistaDetalle extends StatelessWidget {
     );
   }
 }
-
-
 
 class _FechaCard extends ConsumerWidget {
   final String fecha;
@@ -308,7 +304,6 @@ class _FechaCard extends ConsumerWidget {
   }
 }
 
-
 class _BloquePill extends ConsumerWidget {
   final AsistenciaClaseEntity bloque;
   const _BloquePill({required this.bloque});
@@ -385,7 +380,6 @@ class _BloquePill extends ConsumerWidget {
   }
 }
 
-
 class _ResumenCard extends ConsumerWidget {
   final AsistenciaCursoEntity? resumen;
   final List<AsistenciaClaseEntity> clases;
@@ -396,12 +390,14 @@ class _ResumenCard extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final colors = Theme.of(context).colorScheme;
     final stateColors = _attendanceColors(context, ref);
-    final pct = resumen?.porcentaje ?? 0;
-    final presentes =
-        resumen?.presentes ?? clases.where((c) => c.estado == 1).length;
-    final ausentes =
-        resumen?.ausentes ?? clases.where((c) => c.estado == 0).length;
-    final total = resumen?.total ?? clases.length;
+    final stats = _ResumenAsistenciaStats.from(
+      resumen: resumen,
+      clases: clases,
+    );
+    final pct = stats.porcentaje;
+    final presentes = stats.presentes;
+    final ausentes = stats.ausentes;
+    final total = stats.total;
     final justificados = clases.where((c) => c.estado == 3).length;
     final atrasados = clases.where((c) => c.estado == -1).length;
 
@@ -449,7 +445,7 @@ class _ResumenCard extends ConsumerWidget {
                       pct >= 75
                           ? 'Cumple asistencia minima'
                           : pct >= 50
-                              ? 'âš  En riesgo de reprobar por inasistencia'
+                              ? 'En riesgo de reprobar por inasistencia'
                               : 'No cumple asistencia minima',
                       style: TextStyle(
                         fontSize: 10,
@@ -497,6 +493,46 @@ class _ResumenCard extends ConsumerWidget {
           ),
         ],
       ),
+    );
+  }
+}
+
+class _ResumenAsistenciaStats {
+  final int porcentaje;
+  final int presentes;
+  final int ausentes;
+  final int total;
+
+  const _ResumenAsistenciaStats({
+    required this.porcentaje,
+    required this.presentes,
+    required this.ausentes,
+    required this.total,
+  });
+
+  factory _ResumenAsistenciaStats.from({
+    required AsistenciaCursoEntity? resumen,
+    required List<AsistenciaClaseEntity> clases,
+  }) {
+    if (clases.isNotEmpty) {
+      final presentes = clases.where((c) => c.estado == 1).length;
+      final ausentes = clases.where((c) => c.estado == 0).length;
+      final total = clases.length;
+      return _ResumenAsistenciaStats(
+        porcentaje: ((presentes / total) * 100).round(),
+        presentes: presentes,
+        ausentes: ausentes,
+        total: total,
+      );
+    }
+
+    final total = resumen?.total ?? 0;
+    final presentes = resumen?.presentes ?? 0;
+    return _ResumenAsistenciaStats(
+      porcentaje: resumen?.porcentaje ?? 0,
+      presentes: presentes,
+      ausentes: resumen?.ausentes ?? (total - presentes).clamp(0, total),
+      total: total,
     );
   }
 }

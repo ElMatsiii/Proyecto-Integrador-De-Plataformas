@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../core/router/app_router.dart';
 import '../../../../shared/widgets/accessibility_settings_button.dart';
+import '../../../asistencia/data/asistencia_datasource.dart';
 import '../../../auth/presentation/providers/auth_provider_notif.dart';
 import '../../../horario/presentation/providers/horario_provider_notif.dart';
 import '../../data/mis_cursos_datasource.dart';
@@ -271,6 +272,18 @@ class _CursoDetalleSheet extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final asistenciasAsync = ref.watch(asistenciasProvider(semestreId));
     final notasAsync = ref.watch(notasProvider(semestreId));
+    final usuario = ref.watch(currentUserProvider);
+    final detalleAsistenciaAsync = usuario == null
+        ? const AsyncValue<List<AsistenciaClaseEntity>>.data([])
+        : ref.watch(
+            asistenciaEstudianteProvider(
+              (
+                curso: curso.id,
+                semestre: semestreId,
+                rut: usuario.rut,
+              ),
+            ),
+          );
 
     return DraggableScrollableSheet(
       expand: false,
@@ -326,13 +339,29 @@ class _CursoDetalleSheet extends ConsumerWidget {
                               a.seccion == curso.seccion,
                         )
                         .firstOrNull;
-                    if (match == null) {
-                      return const Padding(
-                        padding: EdgeInsets.symmetric(vertical: 8),
-                        child: Text('Sin datos de asistencia'),
-                      );
-                    }
-                    return _AsistenciaCard(asistencia: match);
+                    return detalleAsistenciaAsync.when(
+                      loading: () => match == null
+                          ? const Center(child: CircularProgressIndicator())
+                          : _AsistenciaCard(asistencia: match),
+                      error: (_, __) => match == null
+                          ? const Padding(
+                              padding: EdgeInsets.symmetric(vertical: 8),
+                              child: Text('Sin datos de asistencia'),
+                            )
+                          : _AsistenciaCard(asistencia: match),
+                      data: (clases) {
+                        if (match == null && clases.isEmpty) {
+                          return const Padding(
+                            padding: EdgeInsets.symmetric(vertical: 8),
+                            child: Text('Sin datos de asistencia'),
+                          );
+                        }
+                        return _AsistenciaCard(
+                          asistencia: match,
+                          clases: clases,
+                        );
+                      },
+                    );
                   },
                 ),
                 const SizedBox(height: 16),
@@ -389,22 +418,31 @@ class _SeccionTitulo extends StatelessWidget {
 }
 
 class _AsistenciaCard extends StatelessWidget {
-  final AsistenciaCursoEntity asistencia;
-  const _AsistenciaCard({required this.asistencia});
+  final AsistenciaCursoEntity? asistencia;
+  final List<AsistenciaClaseEntity> clases;
+
+  const _AsistenciaCard({
+    required this.asistencia,
+    this.clases = const [],
+  });
 
   @override
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
-    final porcentaje = asistencia.porcentaje;
+    final stats = _AsistenciaStats.from(
+      resumen: asistencia,
+      clases: clases,
+    );
+    final porcentaje = stats.porcentaje;
     final color = porcentaje >= 75
         ? colors.primaryContainer
         : porcentaje >= 50
             ? colors.secondaryContainer
             : colors.errorContainer;
 
-    final total = asistencia.total;
-    final presentes = asistencia.presentes;
-    final ausentes = total - presentes;
+    final total = stats.total;
+    final presentes = stats.presentes;
+    final ausentes = stats.ausentes;
 
     return Card(
       color: color,
@@ -464,6 +502,46 @@ class _AsistenciaCard extends StatelessWidget {
           ],
         ),
       ),
+    );
+  }
+}
+
+class _AsistenciaStats {
+  final int porcentaje;
+  final int presentes;
+  final int ausentes;
+  final int total;
+
+  const _AsistenciaStats({
+    required this.porcentaje,
+    required this.presentes,
+    required this.ausentes,
+    required this.total,
+  });
+
+  factory _AsistenciaStats.from({
+    required AsistenciaCursoEntity? resumen,
+    required List<AsistenciaClaseEntity> clases,
+  }) {
+    if (clases.isNotEmpty) {
+      final presentes = clases.where((c) => c.estado == 1).length;
+      final ausentes = clases.where((c) => c.estado == 0).length;
+      final total = clases.length;
+      return _AsistenciaStats(
+        porcentaje: ((presentes / total) * 100).round(),
+        presentes: presentes,
+        ausentes: ausentes,
+        total: total,
+      );
+    }
+
+    final total = resumen?.total ?? 0;
+    final presentes = resumen?.presentes ?? 0;
+    return _AsistenciaStats(
+      porcentaje: resumen?.porcentaje ?? 0,
+      presentes: presentes,
+      ausentes: resumen?.ausentes ?? (total - presentes).clamp(0, total),
+      total: total,
     );
   }
 }
