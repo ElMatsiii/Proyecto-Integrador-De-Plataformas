@@ -18,7 +18,6 @@ class _ListaCursos extends ConsumerWidget {
     final cursosAsync = ref.watch(
       misCursosProvider((usuario: usuario, semestre: semestreId)),
     );
-    final asistenciasAsync = ref.watch(asistenciasProvider(semestreId));
 
     return cursosAsync.when(
       loading: () => const Center(child: CircularProgressIndicator()),
@@ -27,17 +26,7 @@ class _ListaCursos extends ConsumerWidget {
         if (cursos.isEmpty) {
           return const Center(child: Text('No tienes cursos registrados'));
         }
-        return asistenciasAsync.when(
-          loading: () => const Center(child: CircularProgressIndicator()),
-          error: (_, __) => _buildList(context, cursos, {}),
-          data: (asistencias) {
-            final map = <String, AsistenciaCursoEntity>{};
-            for (final a in asistencias) {
-              map['${a.codigo}|${a.seccion}'] = a;
-            }
-            return _buildList(context, cursos, map);
-          },
-        );
+        return _buildList(context, cursos);
       },
     );
   }
@@ -45,7 +34,6 @@ class _ListaCursos extends ConsumerWidget {
   Widget _buildList(
     BuildContext context,
     List<CursoUsuarioEntity> cursos,
-    Map<String, AsistenciaCursoEntity> map,
   ) {
     return ListView(
       padding: const EdgeInsets.fromLTRB(0, 8, 0, 80),
@@ -62,7 +50,8 @@ class _ListaCursos extends ConsumerWidget {
         ...cursos.map(
           (c) => _CursoAsistenciaTile(
             curso: c,
-            asistencia: map['${c.codigo}|${c.seccion}'],
+            semestreId: semestreId,
+            rutEstudiante: usuario,
             onTap: () => onCursoTap(c),
           ),
         ),
@@ -71,15 +60,16 @@ class _ListaCursos extends ConsumerWidget {
   }
 }
 
-
 class _CursoAsistenciaTile extends ConsumerWidget {
   final CursoUsuarioEntity curso;
-  final AsistenciaCursoEntity? asistencia;
+  final int semestreId;
+  final String rutEstudiante;
   final VoidCallback onTap;
 
   const _CursoAsistenciaTile({
     required this.curso,
-    required this.asistencia,
+    required this.semestreId,
+    required this.rutEstudiante,
     required this.onTap,
   });
 
@@ -87,8 +77,25 @@ class _CursoAsistenciaTile extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final colors = Theme.of(context).colorScheme;
     final stateColors = _attendanceColors(context, ref);
-    final pct = asistencia?.porcentaje ?? 0;
-    final tieneData = asistencia != null;
+
+    // Igual que en el detalle: las cifras reales salen del listado de
+    // clases (asist_marcar6.php), no del resumen de notas-estudiante.php,
+    // cuyo formato de campos no siempre calza con lo que esperamos.
+    final clasesAsync = ref.watch(
+      asistenciaEstudianteProvider(
+        (
+          curso: curso.id,
+          semestre: semestreId,
+          rut: rutEstudiante,
+        ),
+      ),
+    );
+
+    final clases =
+        clasesAsync.asData?.value ?? const <AsistenciaClaseEntity>[];
+    final tieneData = clasesAsync.hasValue && clases.isNotEmpty;
+    final stats = _ResumenAsistenciaStats.from(resumen: null, clases: clases);
+    final pct = stats.porcentaje;
 
     final barColor =
         !tieneData ? colors.outlineVariant : stateColors.forPorcentaje(pct);
@@ -151,7 +158,7 @@ class _CursoAsistenciaTile extends ConsumerWidget {
                       Row(
                         children: [
                           _MiniChip(
-                            label: '${asistencia!.presentes} pres.',
+                            label: '${stats.presentes} pres.',
                             color: _stateContainer(
                               stateColors.presente,
                               colors.surface,
@@ -163,7 +170,7 @@ class _CursoAsistenciaTile extends ConsumerWidget {
                           ),
                           const SizedBox(width: 6),
                           _MiniChip(
-                            label: '${asistencia!.ausentes} aus.',
+                            label: '${stats.ausentes} aus.',
                             color: _stateContainer(
                               stateColors.ausente,
                               colors.surface,
@@ -175,7 +182,7 @@ class _CursoAsistenciaTile extends ConsumerWidget {
                           ),
                           const SizedBox(width: 6),
                           _MiniChip(
-                            label: '${asistencia!.total} total',
+                            label: '${stats.total} total',
                             color: colors.surfaceContainerHighest,
                             textColor: colors.onSurface,
                           ),
