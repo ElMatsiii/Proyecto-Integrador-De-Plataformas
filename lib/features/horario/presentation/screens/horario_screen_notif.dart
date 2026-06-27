@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../../../../shared/widgets/accessibility_settings_button.dart';
+import '../../../../shared/widgets/logout_button.dart';
 import '../../../auth/presentation/providers/auth_provider_notif.dart';
 import '../../domain/entities/horario_entity.dart';
 import '../providers/horario_provider_notif.dart';
@@ -80,24 +82,54 @@ class _HorarioScreenState extends ConsumerState<HorarioScreen> {
 
     return Scaffold(
       appBar: AppBar(
+        centerTitle: true,
+        leading: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            IconButton(
+              icon: const Icon(Icons.info_outline),
+              tooltip: 'Información',
+              onPressed: () {
+                showDialog<void>(
+                  context: context,
+                  builder: (ctx) => AlertDialog(
+                    title: const Text('Instructivos UCN'),
+                    content: const Text(
+                      'Accede a los instructivos de la Escuela de Ingeniería de la UCN.',
+                    ),
+                    actions: [
+                      TextButton(
+                        onPressed: () => Navigator.of(ctx).pop(),
+                        child: const Text('Cerrar'),
+                      ),
+                      FilledButton.icon(
+                        icon: const Icon(Icons.open_in_browser),
+                        label: const Text('Abrir'),
+                        onPressed: () {
+                          Navigator.of(ctx).pop();
+                          launchUrl(
+                            Uri.parse('https://losvilos.ucn.cl/InstructivosEscuelaIngenieria/'),
+                            mode: LaunchMode.externalApplication,
+                          );
+                        },
+                      ),
+                    ],
+                  ),
+                );
+              },
+            ),
+            IconButton(
+              icon: const Icon(Icons.tune),
+              tooltip: 'Filtros',
+              onPressed: () => _mostrarFiltros(context, ref),
+            ),
+          ],
+        ),
+        leadingWidth: 96,
         title: const Text('Horario'),
-        actions: [
-          const AccessibilitySettingsButton(),
-          IconButton(
-            icon: const Icon(Icons.refresh),
-            tooltip: 'Actualizar',
-            onPressed: () {
-              ref
-                ..invalidate(masterProvider)
-                ..invalidate(horarioProvider)
-                ..invalidate(notificacionesProgramadasProvider);
-            },
-          ),
-          IconButton(
-            icon: const Icon(Icons.tune),
-            tooltip: 'Filtros',
-            onPressed: () => _mostrarFiltros(context, ref),
-          ),
+        actions: const [
+          AccessibilitySettingsButton(),
+          LogoutButton(),
         ],
         bottom: PreferredSize(
           preferredSize: Size.fromHeight(modoToggleVisible ? 108 : 56),

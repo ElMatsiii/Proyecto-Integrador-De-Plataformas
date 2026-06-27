@@ -45,12 +45,25 @@ class TongoyApp extends ConsumerWidget {
       builder: (context, child) {
         final systemScale = MediaQuery.textScalerOf(context).scale(1);
         final scale = (systemScale * settings.fontScale).clamp(0.9, 1.6);
-        return MediaQuery(
+        Widget content = MediaQuery(
           data: MediaQuery.of(context).copyWith(
             textScaler: TextScaler.linear(scale.toDouble()),
           ),
           child: child ?? const SizedBox.shrink(),
         );
+        if (settings.colorBlindMode) {
+          // Matriz de simulación Okabe-Ito (deuteranopía) aplicada globalmente.
+          content = ColorFiltered(
+            colorFilter: const ColorFilter.matrix(<double>[
+              0.625, 0.375, 0,     0, 0,
+              0.700, 0.300, 0,     0, 0,
+              0,     0.300, 0.700, 0, 0,
+              0,     0,     0,     1, 0,
+            ]),
+            child: content,
+          );
+        }
+        return content;
       },
     );
   }

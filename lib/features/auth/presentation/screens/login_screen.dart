@@ -123,7 +123,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                         // Mensaje de error
                         if (errorVisible) ...[
                           const SizedBox(height: 8),
-                          _ErrorBanner(mensaje: errorMsg!),
+                          _ErrorBanner(mensaje: errorMsg),
                         ],
 
                         const SizedBox(height: 24),
@@ -224,43 +224,43 @@ class _GoogleIconPainter extends CustomPainter {
     final stroke = size.width * 0.18;
 
     // Arco rojo
-    canvas.drawArc(
+    canvas..drawArc(
       rect, -0.35, 1.6, false,
       Paint()
         ..color = const Color(0xFFEA4335)
         ..style = PaintingStyle.stroke
         ..strokeWidth = stroke
         ..strokeCap = StrokeCap.butt,
-    );
+    )
     // Arco amarillo
-    canvas.drawArc(
+    ..drawArc(
       rect, 1.25, 0.75, false,
       Paint()
         ..color = const Color(0xFFFBBC05)
         ..style = PaintingStyle.stroke
         ..strokeWidth = stroke
         ..strokeCap = StrokeCap.butt,
-    );
+    )
     // Arco verde
-    canvas.drawArc(
+    ..drawArc(
       rect, 2.0, 0.75, false,
       Paint()
         ..color = const Color(0xFF34A853)
         ..style = PaintingStyle.stroke
         ..strokeWidth = stroke
         ..strokeCap = StrokeCap.butt,
-    );
+    )
     // Arco azul
-    canvas.drawArc(
+    ..drawArc(
       rect, 2.75, 1.2, false,
       Paint()
         ..color = const Color(0xFF4285F4)
         ..style = PaintingStyle.stroke
         ..strokeWidth = stroke
         ..strokeCap = StrokeCap.butt,
-    );
+    )
     // Barra horizontal del "G"
-    canvas.drawLine(
+    ..drawLine(
       Offset(center.dx, center.dy),
       Offset(center.dx + radius * 0.75, center.dy),
       Paint()

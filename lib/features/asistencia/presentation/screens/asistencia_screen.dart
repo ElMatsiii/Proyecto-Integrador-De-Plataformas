@@ -8,6 +8,7 @@ import 'package:url_launcher/url_launcher.dart';
 import '../../../../shared/settings/accessibility_settings.dart';
 import '../../../../shared/theme/app_colors.dart';
 import '../../../../shared/widgets/accessibility_settings_button.dart';
+import '../../../../shared/widgets/logout_button.dart';
 import '../../../auth/presentation/providers/auth_provider_notif.dart';
 import '../../../horario/presentation/providers/horario_provider_notif.dart';
 import '../../../mis_cursos/data/mis_cursos_datasource.dart';
@@ -74,9 +75,41 @@ class _AsistenciaScreenState extends ConsumerState<AsistenciaScreen> {
                 icon: const Icon(Icons.arrow_back),
                 onPressed: () => setState(() => _cursoSeleccionado = null),
               )
-            : null,
+            : IconButton(
+                icon: const Icon(Icons.assignment_outlined),
+                tooltip: 'Justificar asistencia',
+                onPressed: () {
+                  showDialog<void>(
+                    context: context,
+                    builder: (ctx) => AlertDialog(
+                      title: const Text('Justificar asistencia'),
+                      content: const Text(
+                        'Serás redirigido al formulario oficial de justificación de asistencia de la UCN.',
+                      ),
+                      actions: [
+                        TextButton(
+                          onPressed: () => Navigator.of(ctx).pop(),
+                          child: const Text('Cancelar'),
+                        ),
+                        FilledButton.icon(
+                          icon: const Icon(Icons.open_in_browser),
+                          label: const Text('Abrir formulario'),
+                          onPressed: () {
+                            Navigator.of(ctx).pop();
+                            launchUrl(
+                              Uri.parse('https://docs.google.com/forms/d/e/1FAIpQLScgGuPfQU-W5yYPEU-5M1EcgO0fYskyEjelR2Si434IuTHnuw/viewform'),
+                              mode: LaunchMode.externalApplication,
+                            );
+                          },
+                        ),
+                      ],
+                    ),
+                  );
+                },
+              ),
         actions: const [
           AccessibilitySettingsButton(),
+          LogoutButton(),
         ],
       ),
       floatingActionButton: FloatingActionButton.extended(

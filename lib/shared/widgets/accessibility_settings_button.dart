@@ -81,7 +81,7 @@ class _AccessibilitySettingsSheet extends ConsumerWidget {
               contentPadding: EdgeInsets.zero,
               secondary: const Icon(Icons.visibility_outlined),
               title: const Text('Modo daltonico'),
-              subtitle: const Text('Usa colores Okabe-Ito en asistencia'),
+              subtitle: const Text('Usa paleta Okabe-Ito en toda la app'),
               value: settings.colorBlindMode,
               onChanged: notifier.setColorBlindMode,
             ),

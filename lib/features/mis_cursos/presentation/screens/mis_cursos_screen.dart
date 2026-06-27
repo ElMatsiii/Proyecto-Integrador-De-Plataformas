@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../core/router/app_router.dart';
 import '../../../../shared/widgets/accessibility_settings_button.dart';
+import '../../../../shared/widgets/logout_button.dart';
 import '../../../asistencia/data/asistencia_datasource.dart';
 import '../../../auth/presentation/providers/auth_provider_notif.dart';
 import '../../../horario/presentation/providers/horario_provider_notif.dart';
@@ -55,13 +56,9 @@ class MisCursosScreen extends ConsumerWidget {
             ),
           ],
         ),
-        actions: [
-          const AccessibilitySettingsButton(),
-          IconButton(
-            icon: const Icon(Icons.logout),
-            tooltip: 'Cerrar sesión',
-            onPressed: () => _confirmarLogout(context, ref),
-          ),
+        actions: const [
+          AccessibilitySettingsButton(),
+          LogoutButton(),
         ],
       ),
       body: master.when(
@@ -96,29 +93,6 @@ class MisCursosScreen extends ConsumerWidget {
     );
   }
 
-  void _confirmarLogout(BuildContext context, WidgetRef ref) {
-    showDialog<void>(
-      context: context,
-      builder: (dialogContext) => AlertDialog(
-        title: const Text('Cerrar sesión'),
-        content: const Text('¿Quieres cerrar tu sesión?'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(dialogContext).pop(),
-            child: const Text('Cancelar'),
-          ),
-          FilledButton(
-            onPressed: () {
-              Navigator.of(dialogContext).pop();
-              // Toda la limpieza de providers se hace dentro de AuthNotifier.logout()
-              ref.read(authProvider.notifier).logout();
-            },
-            child: const Text('Cerrar sesión'),
-          ),
-        ],
-      ),
-    );
-  }
 }
 
 // ── Lista de cursos ───────────────────────────────────────────────────────────
