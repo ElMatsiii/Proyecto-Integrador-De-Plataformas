@@ -33,6 +33,10 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
         );
   }
 
+  Future<void> _loginConGoogle() async {
+    await ref.read(authProvider.notifier).loginConGoogle();
+  }
+
   @override
   Widget build(BuildContext context) {
     ref.listen<AuthState>(authProvider, (_, next) {
@@ -44,6 +48,11 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     final authState = ref.watch(authProvider);
     final isLoading = authState is AuthLoading;
     final errorMsg = authState is AuthError ? (authState).message : null;
+
+    // No mostrar el error cuando el usuario simplemente cerró el selector
+    // de cuentas de Google — no es un error real.
+    final errorVisible =
+        errorMsg != null && errorMsg != 'Inicio de sesión cancelado';
 
     return Scaffold(
       body: SafeArea(
@@ -112,14 +121,14 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                         const SizedBox(height: 8),
 
                         // Mensaje de error
-                        if (errorMsg != null) ...[
+                        if (errorVisible) ...[
                           const SizedBox(height: 8),
-                          _ErrorBanner(mensaje: errorMsg),
+                          _ErrorBanner(mensaje: errorMsg!),
                         ],
 
                         const SizedBox(height: 24),
 
-                        // Botón ingresar
+                        // Botón ingresar con usuario/contraseña
                         FilledButton(
                           onPressed: isLoading ? null : _login,
                           child: isLoading
@@ -132,6 +141,41 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                                   ),
                                 )
                               : const Text('Ingresar'),
+                        ),
+                        const SizedBox(height: 12),
+
+                        // Divisor "o"
+                        Row(
+                          children: [
+                            const Expanded(child: Divider()),
+                            Padding(
+                              padding:
+                                  const EdgeInsets.symmetric(horizontal: 12),
+                              child: Text(
+                                'o',
+                                style: TextStyle(
+                                  color: Theme.of(context)
+                                      .colorScheme
+                                      .onSurfaceVariant,
+                                ),
+                              ),
+                            ),
+                            const Expanded(child: Divider()),
+                          ],
+                        ),
+                        const SizedBox(height: 12),
+
+                        // Botón de Google
+                        OutlinedButton.icon(
+                          onPressed: isLoading ? null : _loginConGoogle,
+                          icon: const _GoogleIcon(),
+                          label: const Text('Continuar con Google'),
+                          style: OutlinedButton.styleFrom(
+                            minimumSize: const Size(double.infinity, 50),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                          ),
                         ),
                         const SizedBox(height: 12),
 
@@ -153,6 +197,84 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     );
   }
 }
+
+// ── Ícono de Google dibujado con Canvas (sin depender de imágenes externas) ───
+
+class _GoogleIcon extends StatelessWidget {
+  const _GoogleIcon();
+
+  @override
+  Widget build(BuildContext context) {
+    return const SizedBox(
+      width: 20,
+      height: 20,
+      child: CustomPaint(painter: _GoogleIconPainter()),
+    );
+  }
+}
+
+class _GoogleIconPainter extends CustomPainter {
+  const _GoogleIconPainter();
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final center = Offset(size.width / 2, size.height / 2);
+    final radius = size.width / 2;
+    final rect = Rect.fromCircle(center: center, radius: radius * 0.75);
+    final stroke = size.width * 0.18;
+
+    // Arco rojo
+    canvas.drawArc(
+      rect, -0.35, 1.6, false,
+      Paint()
+        ..color = const Color(0xFFEA4335)
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = stroke
+        ..strokeCap = StrokeCap.butt,
+    );
+    // Arco amarillo
+    canvas.drawArc(
+      rect, 1.25, 0.75, false,
+      Paint()
+        ..color = const Color(0xFFFBBC05)
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = stroke
+        ..strokeCap = StrokeCap.butt,
+    );
+    // Arco verde
+    canvas.drawArc(
+      rect, 2.0, 0.75, false,
+      Paint()
+        ..color = const Color(0xFF34A853)
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = stroke
+        ..strokeCap = StrokeCap.butt,
+    );
+    // Arco azul
+    canvas.drawArc(
+      rect, 2.75, 1.2, false,
+      Paint()
+        ..color = const Color(0xFF4285F4)
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = stroke
+        ..strokeCap = StrokeCap.butt,
+    );
+    // Barra horizontal del "G"
+    canvas.drawLine(
+      Offset(center.dx, center.dy),
+      Offset(center.dx + radius * 0.75, center.dy),
+      Paint()
+        ..color = const Color(0xFF4285F4)
+        ..strokeWidth = stroke
+        ..strokeCap = StrokeCap.round,
+    );
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
+}
+
+// ── Widgets sin cambios respecto al original ──────────────────────────────────
 
 class _LoginHeader extends StatelessWidget {
   const _LoginHeader();

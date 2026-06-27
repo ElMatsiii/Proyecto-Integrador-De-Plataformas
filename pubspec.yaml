@@ -1,48 +1,51 @@
 name: tongoy_app
 description: App móvil para el sistema académico Tongoy - UCN
-
+ 
 publish_to: 'none'
-
+ 
 version: 1.0.0+1
-
+ 
 environment:
   sdk: '>=3.2.0 <4.0.0'
-
+ 
 dependencies:
   flutter:
     sdk: flutter
-
+ 
   # HTTP & Networking
   dio: ^5.4.0
   cookie_jar: ^4.0.8
   dio_cookie_manager: ^3.1.1
-
+ 
   # State management
   flutter_riverpod: ^2.4.10
   riverpod_annotation: ^2.3.4
-
+ 
   # Routing
   go_router: ^13.2.0
-
+ 
   # Local storage
   shared_preferences: ^2.2.2
   flutter_secure_storage: ^9.0.0
-
+ 
   # UI utilities
   intl: ^0.19.0
   cached_network_image: ^3.3.1
   google_fonts: ^6.2.1
-
+ 
   # Icons
   cupertino_icons: ^1.0.6
-
+ 
   mobile_scanner: ^5.2.3
-
+ 
   url_launcher: ^6.3.0
-
+ 
   flutter_local_notifications: ^18.0.0
   timezone: ^0.9.4
-
+ 
+  # Autenticación con cuenta de Google del dispositivo
+  google_sign_in: ^7.2.0
+ 
 dev_dependencies:
   flutter_test:
     sdk: flutter
@@ -52,7 +55,7 @@ dev_dependencies:
   custom_lint: ^0.6.3
   riverpod_lint: ^2.3.9
   mocktail: ^1.0.3
-
+ 
 flutter:
   uses-material-design: true
   assets:

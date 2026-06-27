@@ -10,22 +10,23 @@ import '../../../../core/utils/json_read.dart';
 import '../../domain/entities/usuario_entity.dart';
 import '../../domain/repositories/i_auth_repository.dart';
 import '../datasources/auth_remote_datasource.dart';
-
+ 
 final authRepositoryProvider = Provider<IAuthRepository>((ref) {
   return AuthRepository(
     ref.watch(authRemoteDataSourceProvider),
     const FlutterSecureStorage(),
   );
 });
-
+ 
 const _kCookieKey = 'phpsessid_cookie';
-
+const _kLoginViaGoogleKey = 'login_via_google';
+ 
 class AuthRepository implements IAuthRepository {
   final AuthRemoteDataSource _remote;
   final FlutterSecureStorage _storage;
-
+ 
   const AuthRepository(this._remote, this._storage);
-
+ 
   @override
   Future<Result<UsuarioEntity>> login(
     String usuario,
@@ -33,19 +34,39 @@ class AuthRepository implements IAuthRepository {
   ) async {
     final loginResult = await _remote.login(usuario, password);
     if (loginResult is Failure) return Failure(loginResult.errorOrNull!);
-
+ 
     await _storage.write(key: StorageKeys.usuario, value: usuario);
+    await _storage.delete(key: _kLoginViaGoogleKey);
     await _persistCookie();
-
+ 
     return getUsuarioActual();
   }
-
+ 
+  @override
+  Future<Result<UsuarioEntity>> loginConGoogle(String idToken) async {
+    final loginResult = await _remote.loginConGoogle(idToken);
+    if (loginResult is Failure) return Failure(loginResult.errorOrNull!);
+ 
+    await _storage.write(key: _kLoginViaGoogleKey, value: 'true');
+    await _persistCookie();
+ 
+    final usuarioResult = await getUsuarioActual();
+    if (usuarioResult is Success<UsuarioEntity>) {
+      await _storage.write(
+        key: StorageKeys.usuario,
+        value: usuarioResult.data.rut,
+      );
+    }
+    return usuarioResult;
+  }
+ 
   @override
   Future<Result<void>> logout() async {
     try {
       await Future.wait([
         _storage.delete(key: StorageKeys.usuario),
         _storage.delete(key: _kCookieKey),
+        _storage.delete(key: _kLoginViaGoogleKey),
       ]);
       await DioClient.cookieJar.deleteAll();
       return const Success(null);
@@ -53,7 +74,7 @@ class AuthRepository implements IAuthRepository {
       return Failure(UnknownError(e.toString()));
     }
   }
-
+ 
   @override
   Future<Result<UsuarioEntity>> getUsuarioActual() async {
     final result = await _remote.getUsuarioActual();
@@ -64,21 +85,21 @@ class AuthRepository implements IAuthRepository {
       failure: (e) => Failure(e),
     );
   }
-
+ 
   @override
   Future<bool> estaAutenticado() async {
     final usuario = await _storage.read(key: StorageKeys.usuario);
     if (usuario == null) return false;
-
+ 
     final cookieRestaurada = await _restoreCookie();
     if (!cookieRestaurada) {
       await logout();
       return false;
     }
-
+ 
     return true;
   }
-
+ 
   Future<void> _persistCookie() async {
     try {
       final uri = Uri.parse(ApiConstants.baseUrl);
@@ -88,7 +109,7 @@ class AuthRepository implements IAuthRepository {
         orElse: () => Cookie('', ''),
       );
       if (session.value.isEmpty) return;
-
+ 
       final payload = <String, dynamic>{
         'name': session.name,
         'value': session.value,
@@ -98,27 +119,27 @@ class AuthRepository implements IAuthRepository {
         'secure': session.secure,
         'httpOnly': session.httpOnly,
       };
-
+ 
       await _storage.write(key: _kCookieKey, value: jsonEncode(payload));
     } catch (_) {
       // La sesion en memoria sigue funcionando; se pedira login al reiniciar.
     }
   }
-
+ 
   Future<bool> _restoreCookie() async {
     try {
       final raw = await _storage.read(key: _kCookieKey);
       if (raw == null || raw.isEmpty) return false;
-
+ 
       final cookie = _cookieFromStoredValue(raw);
       if (cookie == null || cookie.value.isEmpty) return false;
-
+ 
       final now = DateTime.now().toUtc();
       if (cookie.expires != null && cookie.expires!.toUtc().isBefore(now)) {
         await _storage.delete(key: _kCookieKey);
         return false;
       }
-
+ 
       final uri = Uri.parse(ApiConstants.baseUrl);
       await DioClient.cookieJar.saveFromResponse(uri, [cookie]);
       return true;
@@ -126,7 +147,7 @@ class AuthRepository implements IAuthRepository {
       return false;
     }
   }
-
+ 
   Cookie? _cookieFromStoredValue(String raw) {
     final decoded = jsonDecode(raw);
     if (decoded is Map) {
@@ -134,7 +155,7 @@ class AuthRepository implements IAuthRepository {
       final name = readString(data['name']);
       final value = readString(data['value']);
       if (name.isEmpty || value.isEmpty) return null;
-
+ 
       final expiresRaw = readString(data['expires']);
       return Cookie(name, value)
         ..domain = readString(
@@ -146,8 +167,7 @@ class AuthRepository implements IAuthRepository {
         ..secure = readBool(data['secure'], fallback: true)
         ..httpOnly = readBool(data['httpOnly'], fallback: true);
     }
-
-    // Compatibilidad con instalaciones que guardaron "PHPSESSID=valor".
+ 
     if (!raw.contains('=')) return null;
     final parts = raw.split('=');
     return Cookie(parts.first, parts.sublist(1).join('='))
