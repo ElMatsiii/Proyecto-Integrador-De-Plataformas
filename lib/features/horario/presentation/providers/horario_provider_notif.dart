@@ -115,13 +115,19 @@ final idsCursosPorRolProvider = FutureProvider<RolesCursos>((ref) async {
   }
 
   final master = await ref.watch(masterProvider.future);
-  final semestre = semestreActualOrNull(master);
-  if (semestre == null) {
+
+  // Usar el semestre del filtro activo; si no hay filtro (-1), usar el actual.
+  final filtro = ref.watch(horarioFiltroProvider);
+  final semestreId = filtro.semestre != -1
+      ? filtro.semestre
+      : (semestreActualOrNull(master)?.id ?? -1);
+
+  if (semestreId == -1) {
     return (comoEstudiante: <int>{}, comoProfesor: <int>{});
   }
 
   final repo = ref.watch(misCursosRepositoryProvider);
-  final result = await repo.getCursos(currentUser.rut, semestre.id);
+  final result = await repo.getCursos(currentUser.rut, semestreId);
 
   if (result is! Success<List<CursoUsuarioEntity>>) {
     return (comoEstudiante: <int>{}, comoProfesor: <int>{});

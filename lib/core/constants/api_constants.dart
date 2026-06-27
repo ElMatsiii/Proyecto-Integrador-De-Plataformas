@@ -42,4 +42,5 @@ class StorageKeys {
   static const String semestreActual = 'semestre_actual';
   static const String masterCache = 'master_cache';
   static const String masterCacheTime = 'master_cache_time';
+  static const String loginAt = 'login_at';
 }

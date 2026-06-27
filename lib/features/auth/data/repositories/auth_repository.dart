@@ -20,6 +20,7 @@ final authRepositoryProvider = Provider<IAuthRepository>((ref) {
  
 const _kCookieKey = 'phpsessid_cookie';
 const _kLoginViaGoogleKey = 'login_via_google';
+const _kSessionDuration = Duration(days: 7);
  
 class AuthRepository implements IAuthRepository {
   final AuthRemoteDataSource _remote;
@@ -36,6 +37,10 @@ class AuthRepository implements IAuthRepository {
     if (loginResult is Failure) return Failure(loginResult.errorOrNull!);
  
     await _storage.write(key: StorageKeys.usuario, value: usuario);
+    await _storage.write(
+      key: StorageKeys.loginAt,
+      value: DateTime.now().toUtc().toIso8601String(),
+    );
     await _storage.delete(key: _kLoginViaGoogleKey);
     await _persistCookie();
  
@@ -48,6 +53,10 @@ class AuthRepository implements IAuthRepository {
     if (loginResult is Failure) return Failure(loginResult.errorOrNull!);
  
     await _storage.write(key: _kLoginViaGoogleKey, value: 'true');
+    await _storage.write(
+      key: StorageKeys.loginAt,
+      value: DateTime.now().toUtc().toIso8601String(),
+    );
     await _persistCookie();
  
     final usuarioResult = await getUsuarioActual();
@@ -65,6 +74,7 @@ class AuthRepository implements IAuthRepository {
     try {
       await Future.wait([
         _storage.delete(key: StorageKeys.usuario),
+        _storage.delete(key: StorageKeys.loginAt),
         _storage.delete(key: _kCookieKey),
         _storage.delete(key: _kLoginViaGoogleKey),
       ]);
@@ -90,13 +100,26 @@ class AuthRepository implements IAuthRepository {
   Future<bool> estaAutenticado() async {
     final usuario = await _storage.read(key: StorageKeys.usuario);
     if (usuario == null) return false;
- 
+
+    // Verificar que la sesión no haya expirado (máximo 7 días).
+    final loginAtRaw = await _storage.read(key: StorageKeys.loginAt);
+    if (loginAtRaw != null) {
+      final loginAt = DateTime.tryParse(loginAtRaw);
+      if (loginAt != null) {
+        final expiry = loginAt.toUtc().add(_kSessionDuration);
+        if (DateTime.now().toUtc().isAfter(expiry)) {
+          await logout();
+          return false;
+        }
+      }
+    }
+
     final cookieRestaurada = await _restoreCookie();
     if (!cookieRestaurada) {
       await logout();
       return false;
     }
- 
+
     return true;
   }
  
