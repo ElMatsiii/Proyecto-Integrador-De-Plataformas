@@ -75,11 +75,14 @@ class _HorarioFiltrosSheetState extends ConsumerState<HorarioFiltrosSheet> {
               children: [
                 Icon(Icons.tune_rounded, color: colors.primary, size: 22),
                 const SizedBox(width: 8),
-                Text(
-                  'Filtrar horarios',
-                  style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                        fontWeight: FontWeight.w700,
-                      ),
+                Flexible(
+                  child: Text(
+                    'Filtrar horarios',
+                    style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                          fontWeight: FontWeight.w700,
+                        ),
+                    overflow: TextOverflow.ellipsis,
+                  ),
                 ),
                 if (filtroCounts > 0) ...[
                   const SizedBox(width: 8),
@@ -96,7 +99,6 @@ class _HorarioFiltrosSheetState extends ConsumerState<HorarioFiltrosSheet> {
                       '$filtroCounts',
                       style: TextStyle(
                         color: colors.onPrimary,
-                        fontSize: 12,
                         fontWeight: FontWeight.w700,
                       ),
                     ),
@@ -110,7 +112,7 @@ class _HorarioFiltrosSheetState extends ConsumerState<HorarioFiltrosSheet> {
                     _profesorCtrl.clear();
                     _cursoCtrl.clear();
                   },
-                  child: const Text('Limpiar filtros'),
+                  child: const Text('Limpiar'),
                 ),
                 IconButton(
                   icon: const Icon(Icons.close),
@@ -335,40 +337,35 @@ class _DiaChips extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
-    return Row(
+    return Wrap(
+      spacing: 6,
+      runSpacing: 6,
       children: List.generate(_diasSemana.length, (i) {
         final dia = _diasSemana[i];
         final abrev = _diasAbrev[i];
         final seleccionado = diaSeleccionado == dia;
-        return Expanded(
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 3),
-            child: GestureDetector(
-              onTap: () => onDiaSelected(seleccionado ? '' : dia),
-              child: AnimatedContainer(
-                duration: const Duration(milliseconds: 200),
-                height: 40,
-                decoration: BoxDecoration(
-                  color: seleccionado
-                      ? colors.primary
-                      : colors.surfaceContainerHighest,
-                  borderRadius: BorderRadius.circular(10),
-                  border: seleccionado
-                      ? null
-                      : Border.all(
-                          color: colors.outlineVariant,
-                          width: 1,
-                        ),
-                ),
-                alignment: Alignment.center,
-                child: Text(
-                  abrev,
-                  style: TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w600,
-                    color: seleccionado ? colors.onPrimary : colors.onSurface,
-                  ),
-                ),
+        return GestureDetector(
+          onTap: () => onDiaSelected(seleccionado ? '' : dia),
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 200),
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+            decoration: BoxDecoration(
+              color: seleccionado
+                  ? colors.primary
+                  : colors.surfaceContainerHighest,
+              borderRadius: BorderRadius.circular(10),
+              border: seleccionado
+                  ? null
+                  : Border.all(
+                      color: colors.outlineVariant,
+                      width: 1,
+                    ),
+            ),
+            child: Text(
+              abrev,
+              style: TextStyle(
+                fontWeight: FontWeight.w600,
+                color: seleccionado ? colors.onPrimary : colors.onSurface,
               ),
             ),
           ),
@@ -423,7 +420,6 @@ class _ChipsHorizontales<T> extends StatelessWidget {
                 child: Text(
                   item.label,
                   style: TextStyle(
-                    fontSize: 13,
                     fontWeight: sel ? FontWeight.w700 : FontWeight.w500,
                     color: sel ? colors.onPrimary : colors.onSurface,
                   ),
@@ -517,7 +513,6 @@ class _BusquedaDropdownState<T> extends State<_BusquedaDropdown<T>> {
               child: Text(
                 tieneValor ? _labelActual : widget.hint,
                 style: TextStyle(
-                  fontSize: 14,
                   color:
                       tieneValor ? colors.onSurface : colors.onSurfaceVariant,
                 ),

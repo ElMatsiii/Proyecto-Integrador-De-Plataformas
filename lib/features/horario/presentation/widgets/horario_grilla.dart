@@ -186,7 +186,6 @@ class _DiaIndicador extends StatelessWidget {
                   child: Text(
                     dias[index].substring(0, 3).toUpperCase(),
                     style: TextStyle(
-                      fontSize: 12,
                       fontWeight: FontWeight.w600,
                       color: seleccionado ? colors.onPrimary : colors.onSurface,
                     ),
@@ -280,7 +279,6 @@ class _BloqueRow extends StatelessWidget {
                     bloque.nombre,
                     style: TextStyle(
                       fontWeight: FontWeight.w800,
-                      fontSize: 16,
                       color: colors.primary,
                     ),
                   ),
@@ -289,7 +287,7 @@ class _BloqueRow extends StatelessWidget {
                     Text(
                       bloque.horario!.replaceAll(' - ', '\n'),
                       style: TextStyle(
-                        fontSize: 8,
+                        fontSize: 9,
                         color: colors.onSurfaceVariant,
                         height: 1.3,
                       ),
@@ -340,7 +338,6 @@ class _ClaseCard extends StatelessWidget {
                 Text(
                   _nombreCorto(item.curso),
                   style: TextStyle(
-                    fontSize: 14,
                     fontWeight: FontWeight.w600,
                     color: colors.onPrimaryContainer,
                   ),
@@ -360,9 +357,7 @@ class _ClaseCard extends StatelessWidget {
                       child: Text(
                         item.profesor,
                         style: TextStyle(
-                          fontSize: 12,
-                          color:
-                              colors.onPrimaryContainer.withValues(alpha: 0.7),
+                          color: colors.onPrimaryContainer.withValues(alpha: 0.7),
                         ),
                         overflow: TextOverflow.ellipsis,
                       ),
@@ -377,7 +372,6 @@ class _ClaseCard extends StatelessWidget {
                     Text(
                       item.sala,
                       style: TextStyle(
-                        fontSize: 12,
                         color: colors.onPrimaryContainer.withValues(alpha: 0.7),
                       ),
                     ),
@@ -413,7 +407,7 @@ class _ClaseDetalleDialog extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
-      title: Text(item.curso, style: const TextStyle(fontSize: 15)),
+      title: Text(item.curso),
       content: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -465,7 +459,7 @@ class _DetalleRow extends StatelessWidget {
           ),
           const SizedBox(width: 8),
           Expanded(
-            child: Text(label, style: const TextStyle(fontSize: 13)),
+            child: Text(label),
           ),
         ],
       ),

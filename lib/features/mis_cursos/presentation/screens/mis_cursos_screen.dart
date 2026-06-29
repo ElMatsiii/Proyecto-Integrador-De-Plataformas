@@ -165,11 +165,10 @@ class _CursoCard extends ConsumerWidget {
         ),
         title: Text(
           curso.nombre,
-          style: const TextStyle(fontWeight: FontWeight.w500, fontSize: 14),
+          style: const TextStyle(fontWeight: FontWeight.w500),
         ),
         subtitle: Text(
           '${curso.codigo} · Sección ${curso.seccion}',
-          style: const TextStyle(fontSize: 12),
         ),
         trailing: Row(
           mainAxisSize: MainAxisSize.min,
@@ -226,7 +225,7 @@ class _Badge extends StatelessWidget {
         color: color,
         borderRadius: BorderRadius.circular(20),
       ),
-      child: Text(label, style: TextStyle(fontSize: 10, color: textColor)),
+      child: Text(label, style: TextStyle(fontSize: 10 * MediaQuery.textScalerOf(context).scale(1), color: textColor)),
     );
   }
 }
@@ -542,7 +541,6 @@ class _StatChip extends StatelessWidget {
         Text(
           value,
           style: TextStyle(
-            fontSize: 16,
             fontWeight: FontWeight.w700,
             color: color,
           ),
@@ -550,7 +548,7 @@ class _StatChip extends StatelessWidget {
         Text(
           label,
           style: TextStyle(
-            fontSize: 10,
+            fontSize: 11,
             color: color.withValues(alpha: 0.7),
           ),
         ),
@@ -579,13 +577,11 @@ class _NotasCard extends StatelessWidget {
                       Expanded(
                         child: Text(
                           n.nombre,
-                          style: const TextStyle(fontSize: 13),
                         ),
                       ),
                       Text(
                         n.nota,
                         style: const TextStyle(
-                          fontSize: 13,
                           fontWeight: FontWeight.w600,
                         ),
                       ),
