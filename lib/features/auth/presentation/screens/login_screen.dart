@@ -284,7 +284,7 @@ class _LoginHeader extends StatelessWidget {
     return Column(
       children: [
         Image.asset(
-          'assets/images/ucn_logo_2x.png',
+          'assets/images/ucn-escudo-full-color.png',
           width: 110,
           height: 110,
         ),
