@@ -1,3 +1,12 @@
+/// Feature flags — cambia a true cuando el backend esté listo.
+class FeatureFlags {
+  FeatureFlags._();
+
+  /// Muestra el botón "Continuar con Google" en la pantalla de login.
+  /// Requiere que el backend de Hawaii tenga el endpoint a.php?op=auth operativo.
+  static const bool googleLoginEnabled = false;
+}
+
 /// Todas las URLs y constantes de la API de Tongoy.
 /// Si cambia el servidor, sólo hay que modificar este archivo.
 class ApiConstants {
@@ -15,8 +24,6 @@ class ApiConstants {
   static const String auth = '/a.php';
   static const String validarRut = '/ge.php';
   static const String cursos = '/cp.php';
- 
-  // Documentación oficial v0.9.8: el endpoint correcto es asist_marcar6.php
   static const String asistenciaList = '/asist_marcar6.php';
  
   static const String firebaseToken = '/ust.php';
