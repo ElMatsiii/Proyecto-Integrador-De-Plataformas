@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-
 import '../../../../core/constants/api_constants.dart';
 import '../../../../core/router/app_router.dart';
 import '../../../../shared/widgets/accessibility_settings_button.dart';
@@ -285,13 +284,13 @@ class _LoginHeader extends StatelessWidget {
     return Column(
       children: [
         Image.asset(
-          'assets/images/ucn_logo.png',
+          'assets/images/ucn_logo_2x.png',
           width: 110,
           height: 110,
         ),
         const SizedBox(height: 20),
         Text(
-          'Tongoy UCN',
+          'Hawaii UCN',
           style: Theme.of(context).textTheme.headlineSmall?.copyWith(
                 fontWeight: FontWeight.w700,
               ),

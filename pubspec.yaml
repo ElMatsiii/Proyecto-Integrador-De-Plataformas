@@ -55,8 +55,15 @@ dev_dependencies:
   custom_lint: ^0.6.3
   riverpod_lint: ^2.3.9
   mocktail: ^1.0.3
+  flutter_launcher_icons: ^0.14.4
+
+flutter_icons:
+  android: true
+  ios: true
+  image_path: "assets/images/icon.png"
  
 flutter:
   uses-material-design: true
   assets:
+    - assets/
     - assets/images/
