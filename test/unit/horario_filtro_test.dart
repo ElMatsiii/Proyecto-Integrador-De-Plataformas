@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:tongoy_app/features/horario/domain/entities/horario_entity.dart';
+import 'package:hawaii_app/features/horario/domain/entities/horario_entity.dart';
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 

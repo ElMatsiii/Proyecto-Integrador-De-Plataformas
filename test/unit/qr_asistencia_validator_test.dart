@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:tongoy_app/features/asistencia/domain/qr_asistencia_validator.dart';
+import 'package:hawaii_app/features/asistencia/domain/qr_asistencia_validator.dart';
 
 void main() {
   const validator = QrAsistenciaValidator();

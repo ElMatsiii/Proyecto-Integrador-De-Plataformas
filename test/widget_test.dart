@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
-import 'package:tongoy_app/shared/theme/app_theme.dart';
+import 'package:hawaii_app/shared/theme/app_theme.dart';
 
 // Router mínimo para el smoke test — sin dependencias de red ni DioClient.
 final _testRouter = GoRouter(
