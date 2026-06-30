@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_svg/svg.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../core/constants/api_constants.dart';
 import '../../../../core/router/app_router.dart';
@@ -198,80 +199,19 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   }
 }
 
-// ── Ícono de Google dibujado con Canvas (sin depender de imágenes externas) ───
+// ── Ícono de Google (logo oficial, SVG en assets/icons/google_logo.svg) ──────
 
 class _GoogleIcon extends StatelessWidget {
   const _GoogleIcon();
 
   @override
   Widget build(BuildContext context) {
-    return const SizedBox(
+    return SvgPicture.asset(
+      'assets/icons/google_logo.svg',
       width: 20,
       height: 20,
-      child: CustomPaint(painter: _GoogleIconPainter()),
     );
   }
-}
-
-class _GoogleIconPainter extends CustomPainter {
-  const _GoogleIconPainter();
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final center = Offset(size.width / 2, size.height / 2);
-    final radius = size.width / 2;
-    final rect = Rect.fromCircle(center: center, radius: radius * 0.75);
-    final stroke = size.width * 0.18;
-
-    // Arco rojo
-    canvas..drawArc(
-      rect, -0.35, 1.6, false,
-      Paint()
-        ..color = const Color(0xFFEA4335)
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = stroke
-        ..strokeCap = StrokeCap.butt,
-    )
-    // Arco amarillo
-    ..drawArc(
-      rect, 1.25, 0.75, false,
-      Paint()
-        ..color = const Color(0xFFFBBC05)
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = stroke
-        ..strokeCap = StrokeCap.butt,
-    )
-    // Arco verde
-    ..drawArc(
-      rect, 2.0, 0.75, false,
-      Paint()
-        ..color = const Color(0xFF34A853)
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = stroke
-        ..strokeCap = StrokeCap.butt,
-    )
-    // Arco azul
-    ..drawArc(
-      rect, 2.75, 1.2, false,
-      Paint()
-        ..color = const Color(0xFF4285F4)
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = stroke
-        ..strokeCap = StrokeCap.butt,
-    )
-    // Barra horizontal del "G"
-    ..drawLine(
-      Offset(center.dx, center.dy),
-      Offset(center.dx + radius * 0.75, center.dy),
-      Paint()
-        ..color = const Color(0xFF4285F4)
-        ..strokeWidth = stroke
-        ..strokeCap = StrokeCap.round,
-    );
-  }
-
-  @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }
 
 // ── Widgets sin cambios respecto al original ──────────────────────────────────
