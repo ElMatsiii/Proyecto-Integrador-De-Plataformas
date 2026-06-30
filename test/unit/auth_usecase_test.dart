@@ -1,10 +1,10 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:hawaii_app/core/errors/app_error.dart';
+import 'package:hawaii_app/core/errors/result.dart';
+import 'package:hawaii_app/features/auth/domain/entities/usuario_entity.dart';
+import 'package:hawaii_app/features/auth/domain/repositories/i_auth_repository.dart';
+import 'package:hawaii_app/features/auth/domain/usecases/auth_usecases.dart';
 import 'package:mocktail/mocktail.dart';
-import 'package:tongoy_app/core/errors/app_error.dart';
-import 'package:tongoy_app/core/errors/result.dart';
-import 'package:tongoy_app/features/auth/domain/entities/usuario_entity.dart';
-import 'package:tongoy_app/features/auth/domain/repositories/i_auth_repository.dart';
-import 'package:tongoy_app/features/auth/domain/usecases/auth_usecases.dart';
 
 class MockAuthRepository extends Mock implements IAuthRepository {}
 

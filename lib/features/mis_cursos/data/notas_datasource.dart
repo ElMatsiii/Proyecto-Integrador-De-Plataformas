@@ -1,6 +1,7 @@
 import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:tongoy_app/features/auth/presentation/providers/auth_provider_notif.dart';
+import 'package:hawaii_app/features/auth/presentation/providers/auth_provider_notif.dart';
+
 import '../../../../core/constants/api_constants.dart';
 import '../../../../core/network/dio_client.dart';
 import '../../../../core/utils/json_read.dart';

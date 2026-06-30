@@ -1,10 +1,10 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:hawaii_app/core/errors/app_error.dart';
+import 'package:hawaii_app/core/errors/result.dart';
+import 'package:hawaii_app/features/horario/domain/entities/horario_entity.dart';
+import 'package:hawaii_app/features/horario/domain/repositories/i_horario_repository.dart';
+import 'package:hawaii_app/features/horario/domain/usecases/horario_usecases.dart';
 import 'package:mocktail/mocktail.dart';
-import 'package:tongoy_app/core/errors/app_error.dart';
-import 'package:tongoy_app/core/errors/result.dart';
-import 'package:tongoy_app/features/horario/domain/entities/horario_entity.dart';
-import 'package:tongoy_app/features/horario/domain/repositories/i_horario_repository.dart';
-import 'package:tongoy_app/features/horario/domain/usecases/horario_usecases.dart';
 
 class MockHorarioRepository extends Mock implements IHorarioRepository {}
 

@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:tongoy_app/features/asistencia/data/asistencia_datasource.dart';
+import 'package:hawaii_app/features/asistencia/data/asistencia_datasource.dart';
 
 void main() {
   // ── AsistenciaResumenEntity ───────────────────────────────────────────────

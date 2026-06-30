@@ -1,5 +1,5 @@
-name: tongoy_app
-description: App móvil para el sistema académico Tongoy - UCN
+name: hawaii_app
+description: App móvil para el sistema académico Hawaii - UCN
  
 publish_to: 'none'
  
@@ -55,8 +55,15 @@ dev_dependencies:
   custom_lint: ^0.6.3
   riverpod_lint: ^2.3.9
   mocktail: ^1.0.3
+  flutter_launcher_icons: ^0.14.4
+
+flutter_icons:
+  android: true
+  ios: false
+  image_path: "assets/images/ucn_logo_3x.png"
  
 flutter:
   uses-material-design: true
   assets:
+    - assets/
     - assets/images/

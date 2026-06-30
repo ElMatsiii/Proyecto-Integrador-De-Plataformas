@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:tongoy_app/features/horario/data/models/horario_dto.dart';
+import 'package:hawaii_app/features/horario/data/models/horario_dto.dart';
 
 void main() {
   // ── BloqueDto ─────────────────────────────────────────────────────────────

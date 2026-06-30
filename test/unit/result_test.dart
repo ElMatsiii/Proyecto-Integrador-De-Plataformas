@@ -1,6 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:tongoy_app/core/errors/app_error.dart';
-import 'package:tongoy_app/core/errors/result.dart';
+import 'package:hawaii_app/core/errors/app_error.dart';
+import 'package:hawaii_app/core/errors/result.dart';
 
 void main() {
   group('Result<T>', () {

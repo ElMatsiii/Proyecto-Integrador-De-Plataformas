@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import '../../../../core/constants/api_constants.dart';
 import '../../../../core/router/app_router.dart';
 import '../../../../shared/widgets/accessibility_settings_button.dart';
 import '../providers/auth_provider_notif.dart';
@@ -142,41 +143,40 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                                 )
                               : const Text('Ingresar'),
                         ),
-                        const SizedBox(height: 12),
-
-                        // Divisor "o"
-                        Row(
-                          children: [
-                            const Expanded(child: Divider()),
-                            Padding(
-                              padding:
-                                  const EdgeInsets.symmetric(horizontal: 12),
-                              child: Text(
-                                'o',
-                                style: TextStyle(
-                                  color: Theme.of(context)
-                                      .colorScheme
-                                      .onSurfaceVariant,
+                        // Divisor "o" y botón de Google — solo si está habilitado
+                        if (FeatureFlags.googleLoginEnabled) ...[
+                          const SizedBox(height: 12),
+                          Row(
+                            children: [
+                              const Expanded(child: Divider()),
+                              Padding(
+                                padding:
+                                    const EdgeInsets.symmetric(horizontal: 12),
+                                child: Text(
+                                  'o',
+                                  style: TextStyle(
+                                    color: Theme.of(context)
+                                        .colorScheme
+                                        .onSurfaceVariant,
+                                  ),
                                 ),
                               ),
-                            ),
-                            const Expanded(child: Divider()),
-                          ],
-                        ),
-                        const SizedBox(height: 12),
-
-                        // Botón de Google
-                        OutlinedButton.icon(
-                          onPressed: isLoading ? null : _loginConGoogle,
-                          icon: const _GoogleIcon(),
-                          label: const Text('Continuar con Google'),
-                          style: OutlinedButton.styleFrom(
-                            minimumSize: const Size(double.infinity, 50),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12),
+                              const Expanded(child: Divider()),
+                            ],
+                          ),
+                          const SizedBox(height: 12),
+                          OutlinedButton.icon(
+                            onPressed: isLoading ? null : _loginConGoogle,
+                            icon: const _GoogleIcon(),
+                            label: const Text('Continuar con Google'),
+                            style: OutlinedButton.styleFrom(
+                              minimumSize: const Size(double.infinity, 50),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
                             ),
                           ),
-                        ),
+                        ],
                         const SizedBox(height: 12),
 
                         // Continuar sin cuenta
@@ -283,22 +283,14 @@ class _LoginHeader extends StatelessWidget {
   Widget build(BuildContext context) {
     return Column(
       children: [
-        Container(
-          width: 80,
-          height: 80,
-          decoration: BoxDecoration(
-            color: Theme.of(context).colorScheme.primaryContainer,
-            borderRadius: BorderRadius.circular(20),
-          ),
-          child: Icon(
-            Icons.school_rounded,
-            size: 44,
-            color: Theme.of(context).colorScheme.primary,
-          ),
+        Image.asset(
+          'assets/images/ucn-escudo-full-color.png',
+          width: 110,
+          height: 110,
         ),
         const SizedBox(height: 20),
         Text(
-          'Tongoy UCN',
+          'Hawaii UCN',
           style: Theme.of(context).textTheme.headlineSmall?.copyWith(
                 fontWeight: FontWeight.w700,
               ),

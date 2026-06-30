@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:tongoy_app/features/mis_cursos/domain/entities/curso_usuario_entity.dart';
+import 'package:hawaii_app/features/mis_cursos/domain/entities/curso_usuario_entity.dart';
 
 CursoUsuarioEntity _curso({
   int id = 1,
