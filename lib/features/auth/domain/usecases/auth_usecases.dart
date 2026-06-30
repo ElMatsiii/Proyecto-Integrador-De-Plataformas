@@ -10,13 +10,14 @@ class LoginUseCase {
       _repository.login(usuario, password);
 }
  
-/// Caso de uso: login con ID token de Google obtenido del SDK nativo.
+/// Caso de uso: login con access token de Google (OAuth) obtenido del SDK
+/// nativo.
 class LoginConGoogleUseCase {
   final IAuthRepository _repository;
   const LoginConGoogleUseCase(this._repository);
  
-  Future<Result<UsuarioEntity>> call(String idToken) =>
-      _repository.loginConGoogle(idToken);
+  Future<Result<UsuarioEntity>> call(String accessToken) =>
+      _repository.loginConGoogle(accessToken);
 }
  
 class LogoutUseCase {

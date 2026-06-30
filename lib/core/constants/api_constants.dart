@@ -4,7 +4,7 @@ class FeatureFlags {
 
   /// Muestra el botón "Continuar con Google" en la pantalla de login.
   /// Requiere que el backend de Hawaii tenga el endpoint a.php?op=auth operativo.
-  static const bool googleLoginEnabled = false;
+  static const bool googleLoginEnabled = true;
 }
 
 /// Todas las URLs y constantes de la API de Tongoy.
@@ -32,7 +32,8 @@ class ApiConstants {
   static const String notasEstudiante = '/notas-estudiante.php';
  
   // Login con Google — mismo endpoint a.php, parámetro confirmado por el
-  // encargado de Hawaii: el ID token de Google se manda como 'tg'.
+  // encargado de Hawaii: el access token OAuth de Google (ya29...) se manda
+  // como 'tg' (NO el idToken/JWT).
   static const String authGoogleTokenParam = 'tg';
  
   // Timeouts

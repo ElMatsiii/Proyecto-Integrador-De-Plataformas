@@ -107,11 +107,11 @@ class AuthNotifier extends StateNotifier<AuthState> {
   }
  
   /// Dispara el selector de cuenta de Google y, si el usuario elige una,
-  /// envía el ID token a Hawaii como parámetro 'tg' para abrir sesión.
+  /// envía el access token a Hawaii como parámetro 'tg' para abrir sesión.
   Future<void> loginConGoogle() async {
     state = const AuthLoading();
  
-    final tokenResult = await _googleAuthService.obtenerIdToken();
+    final tokenResult = await _googleAuthService.obtenerAccessToken();
     if (tokenResult is Failure<String>) {
       final error = tokenResult.errorOrNull!;
       // Si el usuario canceló el selector, volver a sin autenticar en silencio.
@@ -123,8 +123,8 @@ class AuthNotifier extends StateNotifier<AuthState> {
       return;
     }
  
-    final idToken = (tokenResult as Success<String>).data;
-    final result = await _loginConGoogle(idToken);
+    final accessToken = (tokenResult as Success<String>).data;
+    final result = await _loginConGoogle(accessToken);
     state = _mapResult(result);
   }
  

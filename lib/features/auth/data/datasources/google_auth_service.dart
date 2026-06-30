@@ -7,14 +7,18 @@ final googleAuthServiceProvider = Provider<GoogleAuthService>((ref) {
   return GoogleAuthService();
 });
 
-/// Envuelve `google_sign_in` (API 7.x) para obtener el ID token de Google
-/// que se enviará al endpoint a.php de Hawaii como parámetro 'tg'.
+/// Envuelve `google_sign_in` (API 7.x) para obtener el access token de
+/// Google que se enviará al endpoint a.php de Hawaii como parámetro 'tg'.
 class GoogleAuthService {
   // Web Client ID creado en Google Cloud Console (tipo "Aplicación web").
   // Este es el que google_sign_in necesita como serverClientId para que
-  // Android genere correctamente el ID token.
+  // Android genere correctamente el ID token / access token.
   static const _clientId =
       '773114131140-ji1hgmfcu9v1l1pk2ieeu9ta5rsssat0.apps.googleusercontent.com';
+
+  // Scopes mínimos para obtener un access token de tipo OAuth (ya29...),
+  // que es lo que espera el backend de Hawaii en a.php?op=auth (param 'tg').
+  static const _scopes = <String>['email', 'profile'];
 
   bool _initialized = false;
 
@@ -27,8 +31,11 @@ class GoogleAuthService {
   }
 
   /// Dispara el selector de cuenta de Google del dispositivo y retorna el
-  /// ID token (JWT) para enviarlo al endpoint a.php de Hawaii como 'tg'.
-  Future<Result<String>> obtenerIdToken() async {
+  /// access token OAuth (ya29...) para enviarlo al endpoint a.php de Hawaii
+  /// como 'tg'. (En API 7.x el idToken y el accessToken se obtienen por vías
+  /// separadas: authenticate() solo da el idToken; el accessToken hay que
+  /// pedirlo explícitamente vía authorizationClient).
+  Future<Result<String>> obtenerAccessToken() async {
     try {
       await _ensureInitialized();
 
@@ -41,15 +48,20 @@ class GoogleAuthService {
       }
 
       final GoogleSignInAccount cuenta = await _instance.authenticate();
-      final idToken = cuenta.authentication.idToken;
 
-      if (idToken == null || idToken.isEmpty) {
+      final authClient = cuenta.authorizationClient;
+      var authorization = await authClient.authorizationForScopes(_scopes);
+      authorization ??= await authClient.authorizeScopes(_scopes);
+
+      final accessToken = authorization.accessToken;
+
+      if (accessToken.isEmpty) {
         return const Failure(
-          UnknownError('Google no devolvió un token válido'),
+          UnknownError('Google no devolvió un access token válido'),
         );
       }
 
-      return Success(idToken);
+      return Success(accessToken);
     } on GoogleSignInException catch (e) {
       if (e.code == GoogleSignInExceptionCode.canceled) {
         return const Failure(AuthError('Inicio de sesión cancelado'));

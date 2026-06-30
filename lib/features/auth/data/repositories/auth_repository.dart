@@ -48,8 +48,8 @@ class AuthRepository implements IAuthRepository {
   }
  
   @override
-  Future<Result<UsuarioEntity>> loginConGoogle(String idToken) async {
-    final loginResult = await _remote.loginConGoogle(idToken);
+  Future<Result<UsuarioEntity>> loginConGoogle(String accessToken) async {
+    final loginResult = await _remote.loginConGoogle(accessToken);
     if (loginResult is Failure) return Failure(loginResult.errorOrNull!);
  
     await _storage.write(key: _kLoginViaGoogleKey, value: 'true');

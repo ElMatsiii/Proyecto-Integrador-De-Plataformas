@@ -36,28 +36,16 @@ class AuthRemoteDataSource {
     }
   }
 
-  /// Login con Google. Manda el ID token al endpoint a.php usando el
-  /// parámetro 'tg', confirmado por el encargado de Hawaii.
-  Future<Result<void>> loginConGoogle(String idToken) async {
+  /// Login con Google. Manda el access token (OAuth, ya29...) al endpoint
+  /// a.php usando el parámetro 'tg', confirmado por el encargado de Hawaii.
+  Future<Result<void>> loginConGoogle(String accessToken) async {
     try {
-      // === LOGS TEMPORALES — quitar antes de producción ===
-      // ignore: avoid_print
-      print('=== TOKEN GOOGLE (primeros 50 chars): ${idToken.substring(0, 50)}');
-      // ignore: avoid_print
-      print('=== ENVIANDO A: ${ApiConstants.baseUrl}${ApiConstants.auth}?op=auth');
-      // ignore: avoid_print
-      print('=== PARAMETRO: ${ApiConstants.authGoogleTokenParam}');
-      // =====================================================
-
       final response = await _dio.post<Map<String, dynamic>>(
         '${ApiConstants.auth}?op=auth',
         data: <String, String>{
-          ApiConstants.authGoogleTokenParam: idToken,
+          ApiConstants.authGoogleTokenParam: accessToken,
         },
       );
-
-      // ignore: avoid_print
-      print('=== RESPUESTA SERVIDOR: ${response.data}');
 
       final data = response.data;
       if (data == null) return const Failure(AuthError());
@@ -69,12 +57,8 @@ class AuthRemoteDataSource {
         ),
       );
     } on DioException catch (e) {
-      // ignore: avoid_print
-      print('=== ERROR DIO: ${e.response?.data}');
       return Failure(dioToAppError(e));
     } catch (e) {
-      // ignore: avoid_print
-      print('=== ERROR DESCONOCIDO: $e');
       return Failure(UnknownError(e.toString()));
     }
   }
