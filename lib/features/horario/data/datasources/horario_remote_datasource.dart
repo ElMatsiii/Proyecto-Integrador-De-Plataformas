@@ -40,7 +40,10 @@ class HorarioRemoteDataSource {
         ApiConstants.horario,
         queryParameters: <String, dynamic>{
           'sala': filtro.sala,
-          'curso': filtro.curso,
+          // La API sólo soporta un curso a la vez. Si hay 0 o más de 1
+          // seleccionados, no filtramos en el servidor y dejamos que el
+          // filtrado local (por Set) se encargue de la selección múltiple.
+          'curso': filtro.curso.length == 1 ? filtro.curso.first : -1,
           'profesor': filtro.profesor,
           'semestre': filtro.semestre,
           'semestrec': filtro.semestreC,

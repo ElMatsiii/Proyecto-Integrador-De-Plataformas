@@ -43,7 +43,10 @@ class HorarioFiltroNotifier extends StateNotifier<HorarioFiltro> {
   void setSemestre(int id) => state = state.copyWith(semestre: id);
   void setArea(int id) => state = state.copyWith(area: id);
   void setProfesor(int id) => state = state.copyWith(profesor: id);
-  void setCurso(int id) => state = state.copyWith(curso: id);
+
+  /// Reemplaza el conjunto completo de cursos seleccionados.
+  void setCursos(Set<int> ids) => state = state.copyWith(curso: ids);
+
   void setSala(int id) => state = state.copyWith(sala: id);
   void setCarrera(int id) => state = state.copyWith(carrera: id);
   void setNivel(int nivel) => state = state.copyWith(semestreC: nivel);
@@ -252,12 +255,11 @@ List<HorarioItemEntity> _aplicarFiltrosLocales(
         .toList();
   }
 
-  // Filtro de seguridad local: aunque 'curso' ya se envía a la API en
-  // filtroApi, si el backend no lo aplica (o el id no coincide con el
-  // esperado) el usuario ve la lista completa sin filtrar. Filtramos
-  // también acá por idCurso para garantizar el resultado correcto.
-  if (filtro.curso != -1) {
-    resultado = resultado.where((i) => i.idCurso == filtro.curso).toList();
+  // Filtro de seguridad local: aunque 'curso' ya se envía a la API cuando
+  // hay una sola selección, la selección múltiple siempre se resuelve acá,
+  // comparando contra el Set completo de ids seleccionados.
+  if (filtro.curso.isNotEmpty) {
+    resultado = resultado.where((i) => filtro.curso.contains(i.idCurso)).toList();
   }
 
   if (search.isNotEmpty) {

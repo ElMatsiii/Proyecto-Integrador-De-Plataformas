@@ -146,9 +146,12 @@ class HorarioItemEntity {
 /// Filtros para consultar el horario.
 /// [dia] es filtrado localmente (no se envía a la API).
 /// [carreraId] también es filtrado localmente sobre los resultados.
+/// [curso] admite selección múltiple; sólo se envía a la API cuando hay
+/// exactamente un curso seleccionado (ver [HorarioRemoteDataSource]), el
+/// resto de los casos se filtran localmente.
 class HorarioFiltro {
   final int sala;
-  final int curso;
+  final Set<int> curso;
   final int profesor;
   final int semestre;
   final int semestreC; // nivel de la carrera (1-10)
@@ -163,7 +166,7 @@ class HorarioFiltro {
 
   const HorarioFiltro({
     this.sala = -1,
-    this.curso = -1,
+    this.curso = const {},
     this.profesor = -1,
     this.semestre = -1,
     this.semestreC = -1,
@@ -175,7 +178,7 @@ class HorarioFiltro {
 
   HorarioFiltro copyWith({
     int? sala,
-    int? curso,
+    Set<int>? curso,
     int? profesor,
     int? semestre,
     int? semestreC,
@@ -200,7 +203,7 @@ class HorarioFiltro {
   /// Retorna true si hay al menos un filtro activo además del semestre.
   bool get tieneFiltroPorsAplicados =>
       sala != -1 ||
-      curso != -1 ||
+      curso.isNotEmpty ||
       profesor != -1 ||
       semestreC != -1 ||
       carrera != -1 ||

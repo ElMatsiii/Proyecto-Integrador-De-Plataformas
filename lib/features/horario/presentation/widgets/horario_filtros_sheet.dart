@@ -291,10 +291,10 @@ class _HorarioFiltrosSheetState extends ConsumerState<HorarioFiltrosSheet> {
                               color: colors.onSurfaceVariant,
                             ),
                           )
-                        : _BusquedaDropdown<int>(
+                        : _BusquedaMultiDropdown<int>(
                             hint: '-- Ninguno --',
                             icon: Icons.book_outlined,
-                            value: filtro.curso == -1 ? null : filtro.curso,
+                            value: filtro.curso,
                             items: cursos
                                 .map(
                                   (c) => _DropItem(
@@ -303,7 +303,7 @@ class _HorarioFiltrosSheetState extends ConsumerState<HorarioFiltrosSheet> {
                                   ),
                                 )
                                 .toList(),
-                            onChanged: (v) => notifier.setCurso(v ?? -1),
+                            onChanged: (ids) => notifier.setCursos(ids),
                           ),
                   ),
                   const SizedBox(height: 28),
@@ -340,7 +340,7 @@ class _HorarioFiltrosSheetState extends ConsumerState<HorarioFiltrosSheet> {
     if (filtro.area != -1) count++;
     if (filtro.sala != -1) count++;
     if (filtro.profesor != -1) count++;
-    if (filtro.curso != -1) count++;
+    if (filtro.curso.isNotEmpty) count++;
     if (filtro.semestreC != -1) count++;
     if (filtro.carreraId != -1) count++;
     if (filtro.dia.isNotEmpty) count++;
@@ -559,6 +559,284 @@ class _BusquedaDropdownState<T> extends State<_BusquedaDropdown<T>> {
                 size: 20,
                 color: colors.onSurfaceVariant,
               ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// ── Dropdown con búsqueda integrada y selección múltiple ─────────────────────
+
+class _BusquedaMultiDropdown<T> extends StatefulWidget {
+  final String hint;
+  final IconData icon;
+  final Set<T> value;
+  final List<_DropItem<T>> items;
+  final ValueChanged<Set<T>> onChanged;
+
+  const _BusquedaMultiDropdown({
+    required this.hint,
+    required this.icon,
+    required this.value,
+    required this.items,
+    required this.onChanged,
+  });
+
+  @override
+  State<_BusquedaMultiDropdown<T>> createState() =>
+      _BusquedaMultiDropdownState<T>();
+}
+
+class _BusquedaMultiDropdownState<T> extends State<_BusquedaMultiDropdown<T>> {
+  String get _labelActual {
+    if (widget.value.isEmpty) return '';
+    if (widget.value.length == 1) {
+      final id = widget.value.first;
+      return widget.items
+          .firstWhere(
+            (i) => i.value == id,
+            orElse: () => _DropItem(value: id, label: ''),
+          )
+          .label;
+    }
+    return '${widget.value.length} seleccionados';
+  }
+
+  Future<void> _abrirBuscador(BuildContext context) async {
+    final colors = Theme.of(context).colorScheme;
+    final resultado = await showModalBottomSheet<Set<T>>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: colors.surface,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (ctx) => _BuscadorModalMulti<T>(
+        hint: widget.hint,
+        items: widget.items,
+        seleccionados: widget.value,
+      ),
+    );
+    if (resultado != null) {
+      widget.onChanged(resultado);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
+    final tieneValor = widget.value.isNotEmpty;
+
+    return GestureDetector(
+      onTap: () => _abrirBuscador(context),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
+        decoration: BoxDecoration(
+          color: colors.surfaceContainerHighest,
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Row(
+          children: [
+            Icon(widget.icon, size: 18, color: colors.onSurfaceVariant),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Text(
+                tieneValor ? _labelActual : widget.hint,
+                style: TextStyle(
+                  color:
+                      tieneValor ? colors.onSurface : colors.onSurfaceVariant,
+                ),
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+            if (tieneValor)
+              GestureDetector(
+                onTap: () => widget.onChanged(<T>{}),
+                child: Icon(
+                  Icons.close,
+                  size: 16,
+                  color: colors.onSurfaceVariant,
+                ),
+              )
+            else
+              Icon(
+                Icons.keyboard_arrow_down_rounded,
+                size: 20,
+                color: colors.onSurfaceVariant,
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// ── Modal de búsqueda con selección múltiple (checkboxes) ────────────────────
+
+class _BuscadorModalMulti<T> extends StatefulWidget {
+  final String hint;
+  final List<_DropItem<T>> items;
+  final Set<T> seleccionados;
+
+  const _BuscadorModalMulti({
+    required this.hint,
+    required this.items,
+    required this.seleccionados,
+  });
+
+  @override
+  State<_BuscadorModalMulti<T>> createState() =>
+      _BuscadorModalMultiState<T>();
+}
+
+class _BuscadorModalMultiState<T> extends State<_BuscadorModalMulti<T>> {
+  String _query = '';
+  late Set<T> _seleccionados;
+
+  @override
+  void initState() {
+    super.initState();
+    _seleccionados = Set<T>.from(widget.seleccionados);
+  }
+
+  List<_DropItem<T>> get _filtrados {
+    if (_query.isEmpty) return widget.items;
+    final q = normalizarBusqueda(_query);
+    return widget.items
+        .where((i) => normalizarBusqueda(i.label).contains(q))
+        .toList();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
+    final filtrados = _filtrados;
+
+    return Padding(
+      padding: EdgeInsets.only(
+        bottom: MediaQuery.of(context).viewInsets.bottom,
+      ),
+      child: SizedBox(
+        height: MediaQuery.of(context).size.height * 0.7,
+        child: Column(
+          children: [
+            const SizedBox(height: 8),
+            Container(
+              width: 40,
+              height: 4,
+              decoration: BoxDecoration(
+                color: colors.outlineVariant,
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: TextField(
+                      autofocus: true,
+                      decoration: InputDecoration(
+                        hintText: widget.hint,
+                        prefixIcon: const Icon(Icons.search, size: 20),
+                        isDense: true,
+                        suffixIcon: _query.isNotEmpty
+                            ? IconButton(
+                                icon: const Icon(Icons.clear, size: 18),
+                                onPressed: () => setState(() => _query = ''),
+                              )
+                            : null,
+                      ),
+                      onChanged: (v) => setState(() => _query = v),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  TextButton(
+                    onPressed: () => Navigator.pop(context),
+                    child: const Text('Cancelar'),
+                  ),
+                ],
+              ),
+            ),
+            const Divider(height: 1),
+            if (_seleccionados.isNotEmpty)
+              Padding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 8,
+                ),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        '${_seleccionados.length} seleccionado${_seleccionados.length == 1 ? '' : 's'}',
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                          color: colors.primary,
+                        ),
+                      ),
+                    ),
+                    TextButton(
+                      onPressed: () => setState(() => _seleccionados.clear()),
+                      child: const Text('Limpiar'),
+                    ),
+                  ],
+                ),
+              ),
+            const Divider(height: 1),
+            Expanded(
+              child: filtrados.isEmpty
+                  ? Center(
+                      child: Text(
+                        'Sin resultados',
+                        style: TextStyle(color: colors.onSurfaceVariant),
+                      ),
+                    )
+                  : ListView.builder(
+                      itemCount: filtrados.length,
+                      itemBuilder: (_, i) {
+                        final item = filtrados[i];
+                        final sel = _seleccionados.contains(item.value);
+                        return CheckboxListTile(
+                          dense: true,
+                          value: sel,
+                          controlAffinity: ListTileControlAffinity.leading,
+                          onChanged: (v) {
+                            setState(() {
+                              if (v ?? false) {
+                                _seleccionados.add(item.value);
+                              } else {
+                                _seleccionados.remove(item.value);
+                              }
+                            });
+                          },
+                          title: Text(
+                            item.label,
+                            style: TextStyle(
+                              fontWeight:
+                                  sel ? FontWeight.w600 : FontWeight.normal,
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+            ),
+            SafeArea(
+              top: false,
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
+                child: FilledButton(
+                  onPressed: () => Navigator.pop(context, _seleccionados),
+                  child: Text(
+                    _seleccionados.isEmpty
+                        ? 'Aplicar'
+                        : 'Aplicar (${_seleccionados.length})',
+                  ),
+                ),
+              ),
+            ),
           ],
         ),
       ),
