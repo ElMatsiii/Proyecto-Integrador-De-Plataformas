@@ -17,7 +17,11 @@ import '../../domain/usecases/horario_usecases.dart';
 final masterProvider = FutureProvider<MasterEntity>((ref) async {
   final repo = ref.watch(horarioRepositoryProvider);
   final useCase = GetMasterUseCase(repo);
-  final result = await useCase();
+  var result = await useCase();
+  if (result is Success<MasterEntity> && result.data.areas.isEmpty) {
+    result = await useCase(forceRefresh: true);
+  }
+
   if (result is Success<MasterEntity>) return result.data;
   throw Exception((result as Failure<MasterEntity>).error.message);
 });

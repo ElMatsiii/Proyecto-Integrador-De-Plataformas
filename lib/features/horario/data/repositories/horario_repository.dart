@@ -26,7 +26,26 @@ class HorarioRepository implements IHorarioRepository {
       if (cached != null) return Success(_filtrarAntofagasta(cached));
     }
 
-    final result = await _remote.fetchMaster();
+    var result = await _remote.fetchMaster();
+
+    // master.php sin ?s=<id_semestre> devuelve 'areas' vacío (confirmado en
+    // consola). El primer llamado sí trae la lista de 'semestres' con el
+    // flag es_actual, así que si areas viene vacío repetimos la petición
+    // pasando el id del semestre actual para obtener el catálogo completo.
+    if (result is Success<MasterDto> && result.data.areas.isEmpty) {
+      final semestres = result.data.semestres;
+      if (semestres.isNotEmpty) {
+        final actual = semestres.firstWhere(
+          (s) => s.esActual,
+          orElse: () => semestres.first,
+        );
+        final retry = await _remote.fetchMaster(semestre: actual.id);
+        if (retry is Success<MasterDto>) {
+          result = retry;
+        }
+      }
+    }
+
     if (result is Success<MasterDto>) {
       final entity = result.data.toEntity();
       // Si el área llegó vacía (respuesta parcial/transitoria del backend),

@@ -7,8 +7,16 @@ Map<String, dynamic>? asJsonMap(dynamic value) {
 }
 
 List<Map<String, dynamic>> asJsonMapList(dynamic value) {
-  if (value is! List) return const [];
-  return value.map(asJsonMap).whereType<Map<String, dynamic>>().toList();
+  if (value is List) {
+    return value.map(asJsonMap).whereType<Map<String, dynamic>>().toList();
+  }
+  if (value is Map) {
+    return value.values
+        .map(asJsonMap)
+        .whereType<Map<String, dynamic>>()
+        .toList();
+  }
+  return const [];
 }
 
 int readInt(dynamic value, {int fallback = 0}) {

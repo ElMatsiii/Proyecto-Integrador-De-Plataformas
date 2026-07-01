@@ -17,10 +17,13 @@ class HorarioRemoteDataSource {
   final Dio _dio;
   const HorarioRemoteDataSource(this._dio);
 
-  Future<Result<MasterDto>> fetchMaster() async {
+  Future<Result<MasterDto>> fetchMaster({int? semestre}) async {
     try {
       final response = await _dio.get<Map<String, dynamic>>(
         ApiConstants.master,
+        queryParameters: semestre == null ? null : <String, dynamic>{
+          's': semestre,
+        },
       );
       final data = response.data;
       if (data == null) return const Failure(ServerError('Respuesta vacía'));
