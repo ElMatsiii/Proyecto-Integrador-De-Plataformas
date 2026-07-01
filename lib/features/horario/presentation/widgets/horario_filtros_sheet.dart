@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../../core/utils/text_normalize.dart';
 import '../../domain/entities/horario_entity.dart';
 import '../providers/horario_provider_notif.dart';
 
@@ -46,6 +47,7 @@ class _HorarioFiltrosSheetState extends ConsumerState<HorarioFiltrosSheet> {
     final filtro = ref.watch(horarioFiltroProvider);
     final notifier = ref.read(horarioFiltroProvider.notifier);
     final carrerasAsync = ref.watch(carrerasDisponiblesProvider);
+    final cursosAsync = ref.watch(cursosDisponiblesProvider);
     final colors = Theme.of(context).colorScheme;
 
     // Cuenta de filtros activos (sin semestre)
@@ -186,17 +188,25 @@ class _HorarioFiltrosSheetState extends ConsumerState<HorarioFiltrosSheet> {
                   // Área
                   const _FiltroLabel(label: 'Área'),
                   const SizedBox(height: 8),
-                  _BusquedaDropdown<int>(
-                    hint: '-- Todas --',
-                    icon: Icons.business_outlined,
-                    value: filtro.area == -1 ? null : filtro.area,
-                    items: m.areas
-                        .map(
-                          (a) => _DropItem(value: a.id, label: a.nombre),
+                  m.areas.isEmpty
+                      ? Text(
+                          'No hay áreas disponibles por ahora',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: colors.onSurfaceVariant,
+                          ),
                         )
-                        .toList(),
-                    onChanged: (v) => notifier.setArea(v ?? -1),
-                  ),
+                      : _BusquedaDropdown<int>(
+                          hint: '-- Todas --',
+                          icon: Icons.business_outlined,
+                          value: filtro.area == -1 ? null : filtro.area,
+                          items: m.areas
+                              .map(
+                                (a) => _DropItem(value: a.id, label: a.nombre),
+                              )
+                              .toList(),
+                          onChanged: (v) => notifier.setArea(v ?? -1),
+                        ),
                   const SizedBox(height: 24),
 
                   // ── Sección: Horario ───────────────────────────────────
@@ -270,16 +280,31 @@ class _HorarioFiltrosSheetState extends ConsumerState<HorarioFiltrosSheet> {
                   // Curso
                   const _FiltroLabel(label: 'Curso'),
                   const SizedBox(height: 8),
-                  _BusquedaDropdown<int>(
-                    hint: '-- Ninguno --',
-                    icon: Icons.book_outlined,
-                    value: filtro.curso == -1 ? null : filtro.curso,
-                    items: m.cursos
-                        .map(
-                          (c) => _DropItem(value: c.id, label: c.nombre),
-                        )
-                        .toList(),
-                    onChanged: (v) => notifier.setCurso(v ?? -1),
+                  cursosAsync.when(
+                    loading: () => const LinearProgressIndicator(),
+                    error: (_, __) => const SizedBox.shrink(),
+                    data: (cursos) => cursos.isEmpty
+                        ? Text(
+                            'Carga el horario primero para filtrar por curso',
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: colors.onSurfaceVariant,
+                            ),
+                          )
+                        : _BusquedaDropdown<int>(
+                            hint: '-- Ninguno --',
+                            icon: Icons.book_outlined,
+                            value: filtro.curso == -1 ? null : filtro.curso,
+                            items: cursos
+                                .map(
+                                  (c) => _DropItem(
+                                    value: c.id,
+                                    label: c.nombre,
+                                  ),
+                                )
+                                .toList(),
+                            onChanged: (v) => notifier.setCurso(v ?? -1),
+                          ),
                   ),
                   const SizedBox(height: 28),
 
@@ -565,9 +590,9 @@ class _BuscadorModalState<T> extends State<_BuscadorModal<T>> {
 
   List<_DropItem<T>> get _filtrados {
     if (_query.isEmpty) return widget.items;
-    final q = _query.toLowerCase();
+    final q = normalizarBusqueda(_query);
     return widget.items
-        .where((i) => i.label.toLowerCase().contains(q))
+        .where((i) => normalizarBusqueda(i.label).contains(q))
         .toList();
   }
 

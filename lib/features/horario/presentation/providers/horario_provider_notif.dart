@@ -4,6 +4,7 @@ import '../../../../core/errors/result.dart';
 import '../../../../core/network/dio_client.dart';
 import '../../../../core/services/notificaciones_service.dart';
 import '../../../../core/utils/json_read.dart';
+import '../../../../core/utils/text_normalize.dart';
 import '../../../auth/presentation/providers/auth_provider_notif.dart';
 import '../../../mis_cursos/data/mis_cursos_datasource.dart';
 import '../../../mis_cursos/domain/entities/curso_usuario_entity.dart';
@@ -251,13 +252,21 @@ List<HorarioItemEntity> _aplicarFiltrosLocales(
         .toList();
   }
 
+  // Filtro de seguridad local: aunque 'curso' ya se envía a la API en
+  // filtroApi, si el backend no lo aplica (o el id no coincide con el
+  // esperado) el usuario ve la lista completa sin filtrar. Filtramos
+  // también acá por idCurso para garantizar el resultado correcto.
+  if (filtro.curso != -1) {
+    resultado = resultado.where((i) => i.idCurso == filtro.curso).toList();
+  }
+
   if (search.isNotEmpty) {
-    final query = search.toLowerCase();
+    final query = normalizarBusqueda(search);
     resultado = resultado.where((item) {
-      return item.curso.toLowerCase().contains(query) ||
-          item.profesor.toLowerCase().contains(query) ||
-          item.sala.toLowerCase().contains(query) ||
-          item.area.toLowerCase().contains(query);
+      return normalizarBusqueda(item.curso).contains(query) ||
+          normalizarBusqueda(item.profesor).contains(query) ||
+          normalizarBusqueda(item.sala).contains(query) ||
+          normalizarBusqueda(item.area).contains(query);
     }).toList();
   }
 
@@ -274,6 +283,28 @@ final carrerasDisponiblesProvider =
       for (final carrera in item.carreras) {
         seen.putIfAbsent(carrera.id, () => carrera);
       }
+    }
+    final lista = seen.values.toList()
+      ..sort((a, b) => a.nombre.compareTo(b.nombre));
+    return lista;
+  });
+});
+
+// ── Cursos únicos desde los items cargados ─────────────────────────────────────
+// A diferencia de m.cursos (catálogo completo de la universidad), esta lista
+// sólo contiene los cursos que efectivamente están en el horario cargado, es
+// decir, los que pertenecen a alguna de las carreras/áreas disponibles. Evita
+// que el filtro de curso ofrezca opciones que después no traen resultados.
+
+final cursosDisponiblesProvider =
+    Provider<AsyncValue<List<CursoEntity>>>((ref) {
+  return ref.watch(horarioProvider).whenData((items) {
+    final seen = <int, CursoEntity>{};
+    for (final item in items) {
+      seen.putIfAbsent(
+        item.idCurso,
+        () => CursoEntity(id: item.idCurso, nombre: item.curso),
+      );
     }
     final lista = seen.values.toList()
       ..sort((a, b) => a.nombre.compareTo(b.nombre));
