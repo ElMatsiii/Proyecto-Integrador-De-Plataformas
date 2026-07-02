@@ -37,14 +37,19 @@ List<HorarioItemEntity> _aplicarFiltrosLocales(
 ) {
   var resultado = items;
 
-  if (filtro.dia.isNotEmpty) {
-    resultado = resultado.where((i) => i.dia == filtro.dia).toList();
+  if (filtro.dias.isNotEmpty) {
+    resultado = resultado.where((i) => filtro.dias.contains(i.dia)).toList();
   }
 
   if (filtro.carreraId != -1) {
     resultado = resultado
         .where((i) => i.carreras.any((c) => c.id == filtro.carreraId))
         .toList();
+  }
+
+  if (filtro.curso.isNotEmpty) {
+    resultado =
+        resultado.where((i) => filtro.curso.contains(i.idCurso)).toList();
   }
 
   if (search.isNotEmpty) {
@@ -69,13 +74,13 @@ void main() {
     test('valores por defecto son -1 / vacío', () {
       const filtro = HorarioFiltro();
       expect(filtro.sala, -1);
-      expect(filtro.curso, -1);
+      expect(filtro.curso, isEmpty);
       expect(filtro.profesor, -1);
       expect(filtro.semestre, -1);
       expect(filtro.semestreC, -1);
       expect(filtro.carrera, -1);
       expect(filtro.area, -1);
-      expect(filtro.dia, '');
+      expect(filtro.dias, isEmpty);
       expect(filtro.carreraId, -1);
     });
 
@@ -90,7 +95,7 @@ void main() {
     });
 
     test('tieneFiltroPorsAplicados es true si hay filtro de día', () {
-      const filtro = HorarioFiltro(dia: 'Lunes');
+      const filtro = HorarioFiltro(dias: {'Lunes'});
       expect(filtro.tieneFiltroPorsAplicados, isTrue);
     });
 
@@ -116,9 +121,9 @@ void main() {
 
       test('copia con dia mantiene campos no tocados', () {
         const original = HorarioFiltro(semestre: 6, carrera: 1);
-        final copia = original.copyWith(dia: 'Martes');
+        final copia = original.copyWith(dias: {'Martes'});
 
-        expect(copia.dia, 'Martes');
+        expect(copia.dias, {'Martes'});
         expect(copia.semestre, 6);
         expect(copia.carrera, 1);
         expect(copia.sala, -1);
@@ -138,14 +143,14 @@ void main() {
           semestre: 6,
           area: 2,
           profesor: 10,
-          dia: 'Viernes',
+          dias: {'Viernes'},
           semestreC: 4,
         );
 
         expect(copia.semestre, 6);
         expect(copia.area, 2);
         expect(copia.profesor, 10);
-        expect(copia.dia, 'Viernes');
+        expect(copia.dias, {'Viernes'});
         expect(copia.semestreC, 4);
         expect(copia.sala, -1); // no modificado
       });
@@ -157,16 +162,16 @@ void main() {
   group('Filtros locales _aplicarFiltrosLocales', () {
     final items = [
       _item(id: 1, dia: 'Lunes', profesor: 'García Mario', sala: 'X-101',
-          curso: 'Algoritmos (ALG-100)', area: 'Ingeniería',
+          curso: 'Algoritmos (ALG-100)', idCurso: 10, area: 'Ingeniería',
           carreras: [const CarreraEnHorario(id: 1, nombre: 'Informática', semestre: 3)],),
       _item(id: 2, dia: 'Martes', profesor: 'López Ana', sala: 'Y-202',
-          curso: 'Cálculo (MAT-100)', area: 'Matemáticas',
+          curso: 'Cálculo (MAT-100)', idCurso: 20, area: 'Matemáticas',
           carreras: [const CarreraEnHorario(id: 2, nombre: 'Civil', semestre: 1)],),
       _item(id: 3, dia: 'Lunes', profesor: 'Martínez Paz', sala: 'X-101',
-          curso: 'Física I (FIS-100)', area: 'Ciencias',
+          curso: 'Física I (FIS-100)', idCurso: 30, area: 'Ciencias',
           carreras: [const CarreraEnHorario(id: 1, nombre: 'Informática', semestre: 2)],),
       _item(id: 4, dia: 'Jueves', profesor: 'García Mario', sala: 'Z-303',
-          curso: 'Redes (RED-200)', area: 'Ingeniería',),
+          curso: 'Redes (RED-200)', idCurso: 40, area: 'Ingeniería',),
     ];
 
     test('sin filtros retorna todos los items', () {
@@ -177,22 +182,29 @@ void main() {
     group('filtro por día', () {
       test('filtra correctamente por Lunes', () {
         final result = _aplicarFiltrosLocales(
-            items, const HorarioFiltro(dia: 'Lunes'), '',);
+            items, const HorarioFiltro(dias: {'Lunes'}), '',);
         expect(result, hasLength(2));
         expect(result.every((i) => i.dia == 'Lunes'), isTrue);
       });
 
       test('filtra correctamente por Martes', () {
         final result = _aplicarFiltrosLocales(
-            items, const HorarioFiltro(dia: 'Martes'), '',);
+            items, const HorarioFiltro(dias: {'Martes'}), '',);
         expect(result, hasLength(1));
         expect(result.first.id, 2);
       });
 
       test('retorna vacío si no hay clases ese día', () {
         final result = _aplicarFiltrosLocales(
-            items, const HorarioFiltro(dia: 'Sabado'), '',);
+            items, const HorarioFiltro(dias: {'Sabado'}), '',);
         expect(result, isEmpty);
+      });
+
+      test('filtra correctamente por múltiples días (Lunes y Martes)', () {
+        final result = _aplicarFiltrosLocales(
+            items, const HorarioFiltro(dias: {'Lunes', 'Martes'}), '',);
+        expect(result, hasLength(3));
+        expect(result.every((i) => i.dia == 'Lunes' || i.dia == 'Martes'), isTrue);
       });
     });
 
@@ -222,6 +234,33 @@ void main() {
             items, const HorarioFiltro(carreraId: 1), '',);
         // Item 4 no tiene carreras → no debe aparecer
         expect(result.any((i) => i.id == 4), isFalse);
+      });
+    });
+
+    group('filtro por curso', () {
+      test('filtra por un curso (idCurso=10)', () {
+        final result = _aplicarFiltrosLocales(
+            items, const HorarioFiltro(curso: {10}), '',);
+        expect(result, hasLength(1));
+        expect(result.first.id, 1);
+      });
+
+      test('filtra por múltiples cursos a la vez', () {
+        final result = _aplicarFiltrosLocales(
+            items, const HorarioFiltro(curso: {10, 30}), '',);
+        expect(result, hasLength(2));
+        expect(result.map((i) => i.id).toSet(), {1, 3});
+      });
+
+      test('retorna vacío si ningún item tiene ese curso', () {
+        final result = _aplicarFiltrosLocales(
+            items, const HorarioFiltro(curso: {999}), '',);
+        expect(result, isEmpty);
+      });
+
+      test('curso vacío no filtra nada', () {
+        final result = _aplicarFiltrosLocales(items, const HorarioFiltro(), '');
+        expect(result, hasLength(4));
       });
     });
 
@@ -270,7 +309,7 @@ void main() {
       test('día + búsqueda se aplican juntos', () {
         // Lunes: items 1 y 3. De esos, buscar 'garcía' → solo item 1
         final result = _aplicarFiltrosLocales(
-            items, const HorarioFiltro(dia: 'Lunes'), 'garcía',);
+            items, const HorarioFiltro(dias: {'Lunes'}), 'garcía',);
         expect(result, hasLength(1));
         expect(result.first.id, 1);
       });
@@ -278,14 +317,22 @@ void main() {
       test('carreraId + día se aplican juntos', () {
         // Carrera 1: items 1 y 3. Día Lunes: items 1 y 3. Intersección: 1 y 3
         final result = _aplicarFiltrosLocales(
-            items, const HorarioFiltro(dia: 'Lunes', carreraId: 1), '',);
+            items, const HorarioFiltro(dias: {'Lunes'}, carreraId: 1), '',);
         expect(result, hasLength(2));
       });
 
       test('filtros múltiples con resultado vacío', () {
         final result = _aplicarFiltrosLocales(
-            items, const HorarioFiltro(dia: 'Jueves', carreraId: 1), '',);
+            items, const HorarioFiltro(dias: {'Jueves'}, carreraId: 1), '',);
         expect(result, isEmpty);
+      });
+
+      test('curso + día se aplican juntos', () {
+        // Curso ALG-100 (idCurso 10) sólo lo tiene el item 1, que es Lunes.
+        final result = _aplicarFiltrosLocales(
+            items, const HorarioFiltro(dias: {'Lunes'}, curso: {10}), '',);
+        expect(result, hasLength(1));
+        expect(result.first.id, 1);
       });
     });
   });
