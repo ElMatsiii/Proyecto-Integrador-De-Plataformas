@@ -1,19 +1,51 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
-class MainScaffold extends StatelessWidget {
+import '../providers/shell_navigation_provider.dart';
+
+class MainScaffold extends ConsumerStatefulWidget {
   final StatefulNavigationShell shell;
   const MainScaffold({required this.shell, super.key});
 
   @override
+  ConsumerState<MainScaffold> createState() => _MainScaffoldState();
+}
+
+class _MainScaffoldState extends ConsumerState<MainScaffold> {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) => _syncIndex());
+  }
+
+  @override
+  void didUpdateWidget(covariant MainScaffold oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    WidgetsBinding.instance.addPostFrameCallback((_) => _syncIndex());
+  }
+
+  void _syncIndex() {
+    if (!mounted) return;
+    final current = ref.read(currentShellIndexProvider);
+    if (current != widget.shell.currentIndex) {
+      ref.read(currentShellIndexProvider.notifier).state =
+          widget.shell.currentIndex;
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
+    // Cubre también el primer build (antes de que exista un "old widget").
+    WidgetsBinding.instance.addPostFrameCallback((_) => _syncIndex());
+
     return Scaffold(
-      body: shell,
+      body: widget.shell,
       bottomNavigationBar: NavigationBar(
-        selectedIndex: shell.currentIndex,
-        onDestinationSelected: (index) => shell.goBranch(
+        selectedIndex: widget.shell.currentIndex,
+        onDestinationSelected: (index) => widget.shell.goBranch(
           index,
-          initialLocation: index == shell.currentIndex,
+          initialLocation: index == widget.shell.currentIndex,
         ),
         destinations: const [
           NavigationDestination(

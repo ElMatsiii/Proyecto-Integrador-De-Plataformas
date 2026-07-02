@@ -158,6 +158,29 @@ final idsCursosPorRolProvider = FutureProvider<RolesCursos>((ref) async {
   return (comoEstudiante: comoEstudiante, comoProfesor: comoProfesor);
 });
 
+// ── Provider que indica si el usuario es ayudante (no depende del filtro) ─────
+// Siempre usa el semestre actual, así que no se ve afectado por reset() del
+// filtro. Evita que los botones "Como estudiante / Como ayudante" desaparezcan
+// al limpiar filtros.
+
+final esAyudanteProvider = FutureProvider<bool>((ref) async {
+  final currentUser = ref.watch(currentUserProvider);
+  if (currentUser == null) return false;
+
+  final master = await ref.watch(masterProvider.future);
+  final semestre = semestreActualOrNull(master);
+  if (semestre == null) return false;
+
+  final repo = ref.watch(misCursosRepositoryProvider);
+  final result = await repo.getCursos(currentUser.rut, semestre.id);
+
+  if (result is! Success<List<CursoUsuarioEntity>>) return false;
+
+  final tieneComoEstudiante = result.data.any((c) => !c.esProfesor);
+  final tieneComoProfesor = result.data.any((c) => c.esProfesor);
+  return tieneComoEstudiante && tieneComoProfesor;
+});
+
 // ── Provider legacy (mantiene compatibilidad con AsistenciaScreen) ────────────
 
 final idsCursosUsuarioProvider = FutureProvider<Set<int>>((ref) async {

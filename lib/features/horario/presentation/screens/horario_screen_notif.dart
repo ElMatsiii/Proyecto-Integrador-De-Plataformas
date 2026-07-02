@@ -57,11 +57,11 @@ class _HorarioScreenState extends ConsumerState<HorarioScreen> {
   Widget build(BuildContext context) {
     final horario = ref.watch(horarioFiltradoProvider);
     final master = ref.watch(masterProvider);
-    final rolesCursos = ref.watch(idsCursosPorRolProvider);
-    final esAyudante = rolesCursos.whenOrNull(
-          data: (r) => r.comoEstudiante.isNotEmpty && r.comoProfesor.isNotEmpty,
-        ) ??
-        false;
+    ref.watch(idsCursosPorRolProvider);
+    // esAyudanteProvider usa siempre el semestre actual, sin depender del
+    // filtro activo. Así los botones no desaparecen al limpiar filtros.
+    final esAyudante =
+        ref.watch(esAyudanteProvider).valueOrNull ?? false;
     final modo = ref.watch(modoVistaHorarioProvider);
     final search = ref.watch(horarioSearchProvider);
     final modoToggleVisible = esAyudante && search == ':';
