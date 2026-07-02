@@ -216,12 +216,12 @@ class _HorarioFiltrosSheetState extends ConsumerState<HorarioFiltrosSheet> {
                   ),
                   const SizedBox(height: 10),
 
-                  // Día — chips tipo botón (como imagen 2)
+                  // Día — chips tipo botón (selección múltiple)
                   const _FiltroLabel(label: 'Día'),
                   const SizedBox(height: 8),
                   _DiaChips(
-                    diaSeleccionado: filtro.dia,
-                    onDiaSelected: (dia) => notifier.setDia(dia),
+                    diasSeleccionados: filtro.dias,
+                    onDiaToggled: notifier.toggleDia,
                   ),
                   const SizedBox(height: 16),
 
@@ -343,20 +343,20 @@ class _HorarioFiltrosSheetState extends ConsumerState<HorarioFiltrosSheet> {
     if (filtro.curso.isNotEmpty) count++;
     if (filtro.semestreC != -1) count++;
     if (filtro.carreraId != -1) count++;
-    if (filtro.dia.isNotEmpty) count++;
+    if (filtro.dias.isNotEmpty) count++;
     return count;
   }
 }
 
-// ── Chips de día ──────────────────────────────────────────────────────────────
+// ── Chips de día (selección múltiple) ────────────────────────────────────────
 
 class _DiaChips extends StatelessWidget {
-  final String diaSeleccionado;
-  final ValueChanged<String> onDiaSelected;
+  final Set<String> diasSeleccionados;
+  final ValueChanged<String> onDiaToggled;
 
   const _DiaChips({
-    required this.diaSeleccionado,
-    required this.onDiaSelected,
+    required this.diasSeleccionados,
+    required this.onDiaToggled,
   });
 
   @override
@@ -368,9 +368,9 @@ class _DiaChips extends StatelessWidget {
       children: List.generate(_diasSemana.length, (i) {
         final dia = _diasSemana[i];
         final abrev = _diasAbrev[i];
-        final seleccionado = diaSeleccionado == dia;
+        final seleccionado = diasSeleccionados.contains(dia);
         return GestureDetector(
-          onTap: () => onDiaSelected(seleccionado ? '' : dia),
+          onTap: () => onDiaToggled(dia),
           child: AnimatedContainer(
             duration: const Duration(milliseconds: 200),
             padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),

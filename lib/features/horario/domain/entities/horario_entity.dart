@@ -158,8 +158,8 @@ class HorarioFiltro {
   final int carrera;
   final int area;
 
-  /// Nombre del día para filtro local ('Lunes', 'Martes', etc.). Vacío = todos.
-  final String dia;
+  /// Días seleccionados para filtro local ('Lunes', 'Martes', etc.). Vacío = todos.
+  final Set<String> dias;
 
   /// ID de carrera para filtro local. -1 = todas.
   final int carreraId;
@@ -172,7 +172,7 @@ class HorarioFiltro {
     this.semestreC = -1,
     this.carrera = -1,
     this.area = -1,
-    this.dia = '',
+    this.dias = const {},
     this.carreraId = -1,
   });
 
@@ -184,7 +184,7 @@ class HorarioFiltro {
     int? semestreC,
     int? carrera,
     int? area,
-    String? dia,
+    Set<String>? dias,
     int? carreraId,
   }) {
     return HorarioFiltro(
@@ -195,7 +195,7 @@ class HorarioFiltro {
       semestreC: semestreC ?? this.semestreC,
       carrera: carrera ?? this.carrera,
       area: area ?? this.area,
-      dia: dia ?? this.dia,
+      dias: dias ?? this.dias,
       carreraId: carreraId ?? this.carreraId,
     );
   }
@@ -208,6 +208,6 @@ class HorarioFiltro {
       semestreC != -1 ||
       carrera != -1 ||
       area != -1 ||
-      dia.isNotEmpty ||
+      dias.isNotEmpty ||
       carreraId != -1;
 }

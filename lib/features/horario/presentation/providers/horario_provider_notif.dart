@@ -17,11 +17,7 @@ import '../../domain/usecases/horario_usecases.dart';
 final masterProvider = FutureProvider<MasterEntity>((ref) async {
   final repo = ref.watch(horarioRepositoryProvider);
   final useCase = GetMasterUseCase(repo);
-  var result = await useCase();
-  if (result is Success<MasterEntity> && result.data.areas.isEmpty) {
-    result = await useCase(forceRefresh: true);
-  }
-
+  final result = await useCase();
   if (result is Success<MasterEntity>) return result.data;
   throw Exception((result as Failure<MasterEntity>).error.message);
 });
@@ -54,7 +50,16 @@ class HorarioFiltroNotifier extends StateNotifier<HorarioFiltro> {
   void setSala(int id) => state = state.copyWith(sala: id);
   void setCarrera(int id) => state = state.copyWith(carrera: id);
   void setNivel(int nivel) => state = state.copyWith(semestreC: nivel);
-  void setDia(String dia) => state = state.copyWith(dia: dia);
+  /// Agrega o quita [dia] del conjunto de días seleccionados (toggle).
+  void toggleDia(String dia) {
+    final actual = {...state.dias};
+    if (actual.contains(dia)) {
+      actual.remove(dia);
+    } else {
+      actual.add(dia);
+    }
+    state = state.copyWith(dias: actual);
+  }
   void setCarreraId(int id) => state = state.copyWith(carreraId: id);
 
   void reset() => state = const HorarioFiltro();
@@ -249,8 +254,8 @@ List<HorarioItemEntity> _aplicarFiltrosLocales(
 ) {
   var resultado = items;
 
-  if (filtro.dia.isNotEmpty) {
-    resultado = resultado.where((i) => i.dia == filtro.dia).toList();
+  if (filtro.dias.isNotEmpty) {
+    resultado = resultado.where((i) => filtro.dias.contains(i.dia)).toList();
   }
 
   if (filtro.carreraId != -1) {
